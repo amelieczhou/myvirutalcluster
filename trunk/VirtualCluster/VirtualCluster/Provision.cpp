@@ -72,7 +72,7 @@ double wait_distribution(double lamda, double miu, double t, int m)
 		double P0 = y + std::pow(m*ru, m) / (factorial(m) * (1-ru));
 		P0 = std::pow(P0, -1);
 		double Pd = P0 * std::pow(m*ru,m) / (factorial(m) * (1 - ru));
-		double result = 1-Pd*std::exp(-(m*miu-lamda)*t);
+		double result = 1.0 - Pd*std::exp(-(m*miu-lamda)*t);
 		return result;
 //	}
 	//if(MDC) {
@@ -113,8 +113,8 @@ int provision(double lamda, double miu, double deadline, double p)
 	double exeT = -1/miu/std::log(std::exp(1.0))*std::log(1-p);
 	double t = deadline - 1.0/miu ;
 	//approximate of M/D/c
-	t *= 2;
-	//t*=1.5;
+	//t *= 2;
+	t *= 1.5;
 	//p = p*std::exp(1.0)/(std::exp(1.0)-1.0);
 	int m = std::floor(lamda/miu) + 1;
 	//test
@@ -125,6 +125,15 @@ int provision(double lamda, double miu, double deadline, double p)
 		F = wait_distribution(lamda, miu, t, m);
 	}
 	//m = std::floor(lamda/miu) + 1;
+	if(lamda/m/miu < 0.75) {
+		t /= 1.5;
+		m = std::floor(lamda/miu) + 1;
+		F = wait_distribution(lamda, miu, t, m); //Pdelay = 1 - W(0) = 1-0.17=0.83
+		while(F<p) {
+			m += 1;
+			F = wait_distribution(lamda, miu, t, m);
+		}
+	}
 	printf("the probability of waiting time less than %4f is %4f\n", t, F);
 	return m;
 }
@@ -144,6 +153,6 @@ double rnd_exponential(double lamda, double t)
 	//srand( (unsigned)time( NULL ));
 	double rnd = (double)rand() / (RAND_MAX + 1);
 	//std::cerr<<"exponential rnd is "<<rnd<<std::endl;
-	double result = -1 / lamda * log(rnd);
+	double result = -1.0 / lamda * log(rnd);
 	return result;
 }

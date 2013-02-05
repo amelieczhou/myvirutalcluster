@@ -5,7 +5,7 @@
 
 void taskVertex::instance_config(){
 	for(int i=0; i<types; i++) //VM types from cheap to expensive
-		if(this->estTime[i]  < (this->LFT - this->EST)) //data transfer time?? + OnDemandLag
+		if(this->estTime[i] + OnDemandLag < (this->LFT - this->EST)) //data transfer time?? + OnDemandLag
 		{
 			prefer_type = i;
 			break;

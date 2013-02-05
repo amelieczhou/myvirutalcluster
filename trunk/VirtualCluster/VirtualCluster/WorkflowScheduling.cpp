@@ -3,6 +3,7 @@
 #include "InstanceConfig.h"
 #include "Algorithms.h"
 #include <string.h>
+#include <ctime>
 
 double max_t;
 bool DynamicSchedule;
@@ -33,6 +34,7 @@ int main(int argc, char** argv)
 
 	if(strcmp(argv[2], "pipeline") == 0)
 	{
+		testJob.type = pipeline;
 		int rnds[] = {0,0,3,3,1,2,1,0,0};//two dummy tasks
 		//generate DAG
 		for(int i=0; i<depth+2; i++) //two dummy tasks
@@ -78,6 +80,7 @@ int main(int argc, char** argv)
 	//for hybrid application
 	else if(strcmp(argv[2], "hybrid") == 0) //fixed shape as indicated in the paper
 	{
+		testJob.type = hybrid;
 		int rnds[] = {0, 0,3,3,1,2,1,0,1,2,2,3,3,0,1,2, 0};//two dummy tasks
 		//generate DAG
 		for(int i=0; i<15+2; i++)
@@ -179,6 +182,7 @@ int main(int argc, char** argv)
 		add_edge(6,7,testJob.g);
 	}
 	else if(strcmp(argv[2],"Montage") == 0) {
+		testJob.type = Montage;
 		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//22
 		for(int i=0; i<20+2; i++){
 			taskVertex tk;
@@ -230,6 +234,7 @@ int main(int argc, char** argv)
 		add_edge(19,20,testJob.g);
 	}
 	else if(strcmp(argv[2], "Ligo") == 0) {
+		testJob.type = Ligo;
 		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//42
 		for(int i=0; i<40+2; i++){
 			taskVertex tk;
@@ -278,6 +283,7 @@ int main(int argc, char** argv)
 
 	}
 	else if(strcmp(argv[2], "Cybershake") == 0) {
+		testJob.type = Cybershake;
 		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//22
 		for(int i=0; i<20+2; i++){
 			taskVertex tk;
@@ -321,6 +327,7 @@ int main(int argc, char** argv)
 			add_edge(i,20,testJob.g);
 	}
 	else if(strcmp(argv[2],"single") == 0) {
+		testJob.type = single;
 		int rnds[3] = {1, 0, 3};
 		for(int i=0; i<3; i++)
 		{
@@ -365,6 +372,8 @@ int main(int argc, char** argv)
 	vp = vertices(testJob.g);
 	for(; vp.first != vp.second; ++vp.first)
 		testJob.g[*vp.first].instance_config();
+	
+	std::clock_t starttime = std::clock();
 
 	if(strcmp(argv[1], "virtualcluster") == 0) {
 
@@ -384,6 +393,10 @@ int main(int argc, char** argv)
 		AutoScaling alg2;
 		alg2.Simulate(testJob);
 	}	
+
+	std::clock_t endtime = std::clock();
+	double timeelapsed = (double)(endtime - starttime) / (double)CLOCKS_PER_SEC;
+	printf("Time elapsed for the experiment is: %4f\n", timeelapsed);
 
 	return 0;
 }
