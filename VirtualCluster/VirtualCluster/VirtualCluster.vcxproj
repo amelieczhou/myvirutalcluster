@@ -14,6 +14,10 @@
     <ProjectGuid>{9A80F064-A8D6-42DA-A87D-7C0854576921}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>VirtualCluster</RootNamespace>
+    <SccProjectName>Svn</SccProjectName>
+    <SccAuxPath>Svn</SccAuxPath>
+    <SccLocalPath>Svn</SccLocalPath>
+    <SccProvider>SubversionScc</SccProvider>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

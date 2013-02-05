@@ -17,7 +17,11 @@ enum Integer_vm{
 
 enum Integer_job{
 	pipeline = 0,
-	parallel = 1
+	hybrid = 1,
+	Montage = 2,
+	Ligo = 3,
+	Cybershake = 4,
+	single = 5
 };
 
 class taskVertex{

@@ -614,8 +614,8 @@ void VirtualCluster::Simulate_SA(Job testJob){
 	std::cout<<"cost of the deadline assign method is "<<dl_result.first<<", exeT is "<<dl_result.second<<std::endl;
 
 	//STEP 1: use the simulated anealing version
-	//double Temp = dl_result.first / 10;//value of Temp can be set according to the cost value
-	double Temp = 1;
+	double Temp = dl_result.first / 10;//value of Temp can be set according to the cost value
+	//double Temp = 1;
 	double cool_r = 0.9;
 	double T_limit = 1e-10;
 	Job tmpJob = testJob;
@@ -639,14 +639,14 @@ void VirtualCluster::Simulate_SA(Job testJob){
 			accept = true;
 		else {
 			double rnd = (double)rand() / (RAND_MAX + 1);
-			if(std::exp(-delta_cost/10/Temp)>rnd)
+			if(std::exp(-delta_cost/Temp)>rnd)
 				accept = true; //true, what if do not allow acceptance?
 		}
 		if(!accept) {
 			//testJob.g[rnd_tk].prefer_type = old_type;
 			testJob = tmpJob;
 		} else {
-			if(new_result.second <= testJob.deadline) {//yes OnDemandLag
+			if(new_result.second <= testJob.deadline*0.9) {//yes OnDemandLag
 				cost_sa = new_result.first;
 				exeT_sa = new_result.second;
 				tmpJob = testJob;
@@ -699,7 +699,7 @@ void VirtualCluster::Simulate_SA(Job testJob){
 	}
 	double miu = 1.0/(exeT_sa);	//OnDemandLag
 	int m = provision(lamda, miu, testJob.deadline,QoS);
-	printf("miu is %4f\t m is %d\n",miu,m);
+	printf("lambda is %4f\t miu is %4f\t m is %d\n",lamda,miu,m);
 
 	//runtime adjustment of the VMs	
 	double ru = lamda/(miu*m);
@@ -707,8 +707,8 @@ void VirtualCluster::Simulate_SA(Job testJob){
 	for(int i=0; i<types; i++) {
 		VMTP[i].clear();
 		if(sharing && share_rate[i] < 1.0)
-			VMs[i] = ceil(d_VMs[i]*m*share_rate[i]);
-		else VMs[i] = ceil(d_VMs[i]*m);
+			VMs[i] = ceil(d_VMs[i]*m*share_rate[i])+1;
+		else VMs[i] = ceil(d_VMs[i]*m)+1;
 		for(int j=0; j<VMs[i]; j++)
 			VMTP[i].push_back(new VM());
 	}
@@ -757,12 +757,25 @@ void VirtualCluster::Simulate_SA(Job testJob){
 		workflows.push_back(job);
 	}
 
+	int pointer = 0; // point to the position of current arrival job
 	do{
 		//if a new job has come
-		for(int i=0; i<workflows.size(); i++) {
+		for(int i=pointer; i<workflows.size(); i++) { 
 			if((int)t == (int)workflows[i]->arrival_time) {
 				vp = vertices(workflows[i]->g);
-				workflows[i]->g[*vp.first].status = ready;
+				if(testJob.type == single || testJob.type == pipeline || testJob.type == hybrid)
+					workflows[i]->g[*vp.first].status = ready;
+				else if(testJob.type == Montage)
+					for(int j=0; j<4; j++)
+						workflows[i]->g[j].status = ready;
+				else if(testJob.type == Ligo)
+					for(int j=0; j<9; j++)
+						workflows[i]->g[j].status = ready;
+				else if(testJob.type == Cybershake) {
+					workflows[i]->g[0].status = ready;
+					workflows[i]->g[1].status = ready;
+				}
+				pointer = i;
 				break;
 			}
 		}
@@ -772,26 +785,28 @@ void VirtualCluster::Simulate_SA(Job testJob){
 		int num_jobs = workflows.size();
 		for(int i=0; i<num_jobs; i++) {
 			vp = vertices(workflows[i]->g);
-			for(int j=0; j<(*vp.second - *vp.first); j++){
-				bool tag = true;
-				//get parent vertices
-				in_edge_iterator in_i, in_end;
-				edge_descriptor e;
-				boost::tie(in_i, in_end) = in_edges(j, workflows[i]->g);
-				if(in_i == in_end) tag = false;
-				else {
-					for (; in_i != in_end; ++in_i) {
-						e = *in_i;
-						Vertex src = source(e, workflows[i]->g);					
-						if(workflows[i]->g[src].status != finished)	{
-							tag = false;
-							break;
+			if(workflows[i]->g[*(vp.second -1)].status != finished) {
+				for(int j=0; j<(*vp.second - *vp.first); j++){
+					bool tag = true;
+					//get parent vertices
+					in_edge_iterator in_i, in_end;
+					edge_descriptor e;
+					boost::tie(in_i, in_end) = in_edges(j, workflows[i]->g);
+					if(in_i == in_end) tag = false;
+					else {
+						for (; in_i != in_end; ++in_i) {
+							e = *in_i;
+							Vertex src = source(e, workflows[i]->g);					
+							if(workflows[i]->g[src].status != finished)	{
+								tag = false;
+								break;
+							}
 						}
 					}
-				}
-				if(workflows[i]->g[j].status == ready || (workflows[i]->g[j].status != scheduled && workflows[i]->g[j].status != finished && tag)){
-					workflows[i]->g[j].status = ready;
-					ready_task.push_back(&workflows[i]->g[j]);							
+					if(workflows[i]->g[j].status == ready || (workflows[i]->g[j].status != scheduled && workflows[i]->g[j].status != finished && tag)){
+						workflows[i]->g[j].status = ready;
+						ready_task.push_back(&workflows[i]->g[j]);							
+					}
 				}
 			}
 		}
@@ -1024,8 +1039,15 @@ void AutoScaling::Simulate(Job testJob) {
 
 	std::pair<vertex_iter, vertex_iter> vp; 
 	std::ifstream infile;
+	std::string a = "arrivaltime_";
+	std::string b;
+	std::ostringstream strlamda;
+	strlamda << lamda;
+	b = strlamda.str();
+	std::string c = ".txt";
+	std::string fname = a + b + c;
 	char time[256];
-	infile.open("arrivaltime.txt");
+	infile.open(fname.c_str());
 	infile.getline(time,256); //jump the lamda line
 	infile.getline(time,256); //jump the 0 line
 	//incomming jobs
@@ -1051,7 +1073,18 @@ void AutoScaling::Simulate(Job testJob) {
 		for(int i=0; i<workflows.size(); i++) {
 			if((int)t == (int)workflows[i]->arrival_time) {
 				vp = vertices(workflows[i]->g);
-				workflows[i]->g[*vp.first].status = ready;
+				if(testJob.type == single || testJob.type == pipeline || testJob.type == hybrid)
+					workflows[i]->g[*vp.first].status = ready;
+				else if(testJob.type == Montage)
+					for(int j=0; j<4; j++)
+						workflows[i]->g[j].status = ready;
+				else if(testJob.type == Ligo)
+					for(int j=0; j<9; j++)
+						workflows[i]->g[j].status = ready;
+				else if(testJob.type == Cybershake) {
+					workflows[i]->g[0].status = ready;
+					workflows[i]->g[1].status = ready;
+				}
 				break;
 			}
 		}
