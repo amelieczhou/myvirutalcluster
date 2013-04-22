@@ -50,5 +50,8 @@
     <ClCompile Include="WorkflowScheduling.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="GanttConsolidation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

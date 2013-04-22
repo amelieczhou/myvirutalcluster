@@ -94,6 +94,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Algorithms.cpp" />
+    <ClCompile Include="GanttConsolidation.cpp" />
     <ClCompile Include="InstanceConfig.cpp" />
     <ClCompile Include="Provision.cpp" />
     <ClCompile Include="stdafx.cpp">

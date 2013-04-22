@@ -42,6 +42,12 @@ public:
 	bool mark; //already assigned sub-deadline => 1
 	int type; //type of task
 
+	//for GanttChart
+	double scheduled_time; //the time when the task is scheduled to run
+	bool operator< (const taskVertex& x) const {return start_time < x.start_time; } //for priority queue
+	//Job* job; //the task belong to job
+	int job_id;
+
 	void instance_config(); //configuration for the prefer_type
 };
 
@@ -59,6 +65,7 @@ bool mycompare(std::pair<double, double> a, std::pair<double, double> b);
 
 class Job{
 public:
+	int name; //mark the job with a name
 	Graph g;
 	double deadline;
 	Integer_job type;
@@ -78,14 +85,24 @@ public:
 
 class VM {
 public:
-	double price; //price for one hour
+	//double price; //price for one hour
+	int name;
 	int type; //instance type
 	taskVertex* curr_task; //the task currently executing on the VM
 	double life_time; //how long the vm has been on
 	double in_use; //how long the vm is been used
 	double idle_time; //how long the vm has been idle
 
-	VM() { life_time = idle_time = in_use = 0; curr_task = NULL;}
+	//for GanttChart
+	double start_time; //the time the VM is turned on
+	double end_time; //the end time of the last task executed on this vm
+	double resi_time; //left over one hour time
+	std::vector<taskVertex*> assigned_tasks; //the tasks assigned to share the one hour time
+	std::list<int> dependentVMs; //the VMs depending on the current VM
+	bool operator< (const VM& x) const {return start_time < x.start_time; } //for priority queue
+	int capacity; //for coscheduling, stands for the number of tasks can be executed at the same time
+
+	VM() { life_time = idle_time = in_use = start_time = resi_time = 0; curr_task = NULL; }
 };
 
 class Point {

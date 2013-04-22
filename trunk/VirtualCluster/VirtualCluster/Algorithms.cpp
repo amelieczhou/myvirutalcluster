@@ -216,7 +216,7 @@ void VirtualCluster::Simulate(Job testJob){
 
 	//incomming jobs
 	while(arrival_time < max_t){
-		double interarrival = rnd_exponential(lamda, t);
+		double interarrival = (int)rnd_exponential(lamda, t);//make time be integers
 		if(interarrival < 1.0) interarrival = 1.0;
 		arrival_time += interarrival;
 		Job* job = new Job(pipeline,deadline+arrival_time,lamda);
@@ -732,7 +732,7 @@ void VirtualCluster::Simulate_SA(Job testJob){
 	double t = 0; bool condition = false;
 	double moneycost = 0;
 	std::ifstream infile;
-	std::string a = "arrivaltime_";
+	std::string a = "arrivaltime_integer_";
 	std::string b;
 	std::ostringstream strlamda;
 	strlamda << lamda;
@@ -1039,7 +1039,7 @@ void AutoScaling::Simulate(Job testJob) {
 
 	std::pair<vertex_iter, vertex_iter> vp; 
 	std::ifstream infile;
-	std::string a = "arrivaltime_";
+	std::string a = "arrivaltime_integer_";
 	std::string b;
 	std::ostringstream strlamda;
 	strlamda << lamda;
