@@ -360,21 +360,22 @@ int main(int argc, char** argv)
 	//initially assign according to the minimum execution time
 	std::pair<vertex_iter, vertex_iter> vp; 
 	vp = vertices(testJob.g);
-	for(; vp.first!=vp.second; ++vp.first) //edge weight for communication cost
-	{
-		Vertex v1 = *vp.first;
-		testJob.g[v1].prefer_type = types-1;
-	}
-
-	testJob.deadline_assign();
-
-	//task configuration, find the prefered VM type for tasks
-	vp = vertices(testJob.g);
-	for(; vp.first != vp.second; ++vp.first)
-		testJob.g[*vp.first].instance_config();
-	
 	std::clock_t starttime = std::clock();
+	if(strcmp(argv[1], "virtualcluster") == 0 || strcmp(argv[1], "autoscaling") == 0) {
+		for(; vp.first!=vp.second; ++vp.first) //edge weight for communication cost
+		{
+			Vertex v1 = *vp.first;
+			testJob.g[v1].prefer_type = types-1;
+		}
+			
+		testJob.deadline_assign();
 
+		//task configuration, find the prefered VM type for tasks
+		vp = vertices(testJob.g);
+		for(; vp.first != vp.second; ++vp.first)
+			testJob.g[*vp.first].instance_config();
+	}
+	
 	if(strcmp(argv[1], "virtualcluster") == 0) {
 
 		VirtualCluster alg1;
@@ -392,7 +393,20 @@ int main(int argc, char** argv)
 
 		AutoScaling alg2;
 		alg2.Simulate(testJob);
-	}	
+	}
+	else if(strcmp(argv[1], "consolidation") == 0){
+		GanttConsolidation alg3;
+		//Initialization
+		if(strcmp(argv[12],"bestfit") == 0) alg3.Initialization(&testJob,1);
+		else if(strcmp(argv[12],"worstfit") == 0) alg3.Initialization(&testJob,2);
+		else if(strcmp(argv[12],"mostefficient") == 0) alg3.Initialization(&testJob,3);
+		
+		vp = vertices(testJob.g);
+		for(; vp.first!=vp.second; ++vp.first) 
+			testJob.g[*vp.first].sub_deadline = testJob.deadline;
+		
+		alg3.Simulate(testJob);
+	}
 
 	std::clock_t endtime = std::clock();
 	double timeelapsed = (double)(endtime - starttime) / (double)CLOCKS_PER_SEC;
