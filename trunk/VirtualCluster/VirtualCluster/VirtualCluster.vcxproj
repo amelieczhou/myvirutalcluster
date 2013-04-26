@@ -87,13 +87,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Algorithms.h" />
+    <ClInclude Include="ConsolidateOperators.h" />
     <ClInclude Include="InstanceConfig.h" />
     <ClInclude Include="Provision.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Algorithms.cpp" />
+    <ClCompile Include="AutoScaling.cpp" />
+    <ClCompile Include="ConsolidateOperators.cpp" />
     <ClCompile Include="GanttConsolidation.cpp" />
     <ClCompile Include="InstanceConfig.cpp" />
     <ClCompile Include="Provision.cpp" />
@@ -101,6 +103,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="VirtualCluster.cpp" />
     <ClCompile Include="WorkflowScheduling.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

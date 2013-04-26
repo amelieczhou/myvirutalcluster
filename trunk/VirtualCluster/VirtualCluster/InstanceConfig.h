@@ -3,10 +3,17 @@
 #include <vector>
 #include <queue>
 using namespace boost;
+using namespace std;
 
 const int types = 4; //VM types
 const double priceOnDemand[] = {0.095, 0.19, 0.38, 0.76};
 const double OnDemandLag = 5;//0;
+//const double Times[4][types] = {{120,65,38,24},{90,50,30,20},{60,35,23,17},{30,20,15,13}};
+//const double Times[4][types] = {{12,7,4,2},{9,5,3,2},{6,4,2,1},{3,2,2,1}};
+const double Times[4][types] = {{210,110,58,32},{150,65,38,24},{90,50,30,20},{30,20,15,13}};
+const double inter_time = 5; //time interval between 2 vms less than inter_time can be merged
+const double idle_interval = 30; //a vm has been idle for idle_interval has to be turned off
+const double degradation = 0.2;
 
 enum Integer_vm{
 	not_ready = 0,
@@ -43,7 +50,7 @@ public:
 	int type; //type of task
 
 	//for GanttChart
-	double scheduled_time; //the time when the task is scheduled to run
+	//double scheduled_time; //the time when the task is scheduled to run
 	bool operator< (const taskVertex& x) const {return start_time < x.start_time; } //for priority queue
 	//Job* job; //the task belong to job
 	int job_id;
@@ -61,7 +68,7 @@ typedef graph_traits<Graph>::adjacency_iterator adja_iterator;
 typedef graph_traits<Graph>::edge_descriptor edge_descriptor;
 //typedef typename boost::graph_traits<Graph>::vertices_size_type vertices_size;
 
-bool mycompare(std::pair<double, double> a, std::pair<double, double> b);
+bool mycompare(pair<double, double> a, pair<double, double> b);
 
 class Job{
 public:
@@ -72,12 +79,12 @@ public:
 	int* serverGroup;
 	double lamda; //arrival rate
 	double arrival_time;
-	std::vector<std::pair<double, double> > templates[types];
+	vector<pair<double, double> > templates[types];
 	
 	Job (Integer_job t, double d, double l) {deadline = d; type = t; lamda = l;}
 	Job (Graph dag) {g = dag; }
 	void reset(); // reset the parameters of tasks in the Job
-	std::vector<int> find_CP(); //find the critical path of the Job, for deadline assignment
+	vector<int> find_CP(); //find the critical path of the Job, for deadline assignment
 	void deadline_assign(); // deadline assignment
 	int* find_ServerGroup(); //find the number of VMs in each type for one job
 	int* find_ServerGroup_SA(); //for simulate_sa
@@ -86,7 +93,7 @@ public:
 class VM {
 public:
 	//double price; //price for one hour
-	int name;
+	//int name;
 	int type; //instance type
 	taskVertex* curr_task; //the task currently executing on the VM
 	double life_time; //how long the vm has been on
@@ -97,8 +104,8 @@ public:
 	double start_time; //the time the VM is turned on
 	double end_time; //the end time of the last task executed on this vm
 	double resi_time; //left over one hour time
-	std::vector<taskVertex*> assigned_tasks; //the tasks assigned to share the one hour time
-	std::list<int> dependentVMs; //the VMs depending on the current VM
+	vector<vector<taskVertex*> > assigned_tasks; //the tasks assigned to share the one hour time
+	//std::list<int> dependentVMs; //the VMs depending on the current VM
 	bool operator< (const VM& x) const {return start_time < x.start_time; } //for priority queue
 	int capacity; //for coscheduling, stands for the number of tasks can be executed at the same time
 
@@ -129,19 +136,19 @@ double EST(taskVertex tk, Job job);
 double LFT(taskVertex tk, Job job);
 void AssignParents(taskVertex* tk, Job* job);
 Vertex CriticalParent(taskVertex* tk, Job* job);
-void AssignPath(std::deque<Vertex> PCP,Job* job);
+void AssignPath(deque<Vertex> PCP,Job* job);
 bool has_unassigned_parent(taskVertex* tk, Job* job);
 bool has_unassigned_child(taskVertex* tk, Job* job);
 void update_EST(taskVertex* tk, Job* job);
 void update_LFT(taskVertex* tk, Job* job);
 
 //the following functions are for finding the server groups
-std::vector<Point> merge(std::vector<Point> build1, std::vector<Point> build2);
-std::vector<Point> merge_sort(std::vector<Building> b);
+vector<Point> merge(vector<Point> build1, vector<Point> build2);
+vector<Point> merge_sort(vector<Building> b);
 
 //use the following functions to calculate the sharing rate
-std::vector<std::pair<double, double> >  merge_sort_sharing(std::vector<std::pair<double, double> > buildlist);
-std::vector<std::pair<double, double> >  merge_sharing(std::vector<std::pair<double, double> > build1, std::vector<std::pair<double, double> > build2);
+vector<pair<double, double> >  merge_sort_sharing(vector<pair<double, double> > buildlist);
+vector<pair<double, double> >  merge_sharing(vector<pair<double, double> > build1, vector<pair<double, double> > build2);
 //double Cal_Cost(std::vector<std::pair<double, double> > points);
 
 bool myfunction(taskVertex* a, taskVertex* b);

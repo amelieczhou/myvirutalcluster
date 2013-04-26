@@ -33,6 +33,9 @@
     <ClInclude Include="Algorithms.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ConsolidateOperators.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -44,13 +47,19 @@
     <ClCompile Include="InstanceConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Algorithms.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="WorkflowScheduling.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="GanttConsolidation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ConsolidateOperators.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VirtualCluster.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AutoScaling.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
