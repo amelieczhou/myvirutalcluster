@@ -74,7 +74,7 @@ int main(int argc, char** argv)
 
 			edge_descriptor e; 
 			bool inserted;
-			tie(e, inserted) = add_edge(v1, v2, testJob.g);
+			boost::tie(e, inserted) = add_edge(v1, v2, testJob.g);
 		}				
 	}
 	//for hybrid application
@@ -384,10 +384,10 @@ int main(int argc, char** argv)
 	else if(strcmp(argv[1], "autoscaling") == 0){
 		//remove the dummy tasks which are added for deadline assign
 		vertex_iter vi, vi_end, next;
-		tie(vi, vi_end) = vertices(testJob.g);
+		boost::tie(vi, vi_end) = vertices(testJob.g);
 		clear_vertex(*vi,testJob.g);
 		remove_vertex(*vi,testJob.g);
-		tie(vi, vi_end) = vertices(testJob.g);
+		boost::tie(vi, vi_end) = vertices(testJob.g);
 		clear_vertex(*(--vi_end),testJob.g);
 		remove_vertex(*(vi_end),testJob.g);
 
