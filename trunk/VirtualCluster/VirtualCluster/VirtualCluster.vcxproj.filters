@@ -47,9 +47,6 @@
     <ClCompile Include="InstanceConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="WorkflowScheduling.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="GanttConsolidation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -60,6 +57,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="AutoScaling.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="testMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
