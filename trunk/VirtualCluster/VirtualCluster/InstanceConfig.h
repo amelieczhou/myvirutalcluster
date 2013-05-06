@@ -14,6 +14,7 @@ const double Times[4][types] = {{210,110,58,32},{150,80,45,28},{90,50,30,20},{30
 const double inter_time = 5; //time interval between 2 vms less than inter_time can be merged
 const double idle_interval = 30; //a vm has been idle for idle_interval has to be turned off
 const double degradation = 0.2;
+const int threshold = 10; //terminate planning if no gains can be obtained by consolidation for more than threshold times
 
 enum Integer_vm{
 	not_ready = 0,
@@ -54,6 +55,7 @@ public:
 	bool operator< (const taskVertex& x) const {return start_time < x.start_time; } //for priority queue
 	//Job* job; //the task belong to job
 	int job_id;
+	//vector<taskVertex*> children;
 
 	void instance_config(); //configuration for the prefer_type
 };
