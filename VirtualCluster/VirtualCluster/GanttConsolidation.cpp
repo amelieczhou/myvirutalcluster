@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "Provision.h"
 #include "ConsolidateOperators.h"
 #include "Algorithms.h"
 #include <fstream>
@@ -19,6 +18,21 @@ extern double QoS;
 void GanttConsolidation::Initialization(Job* testJob, int policy)
 {
 	std::pair<vertex_iter, vertex_iter> vp;
+	//vp=vertices(testJob->g);
+	//for(; vp.first!=vp.second; ++vp.first){
+	//	//find the children of all tasks
+	//	//get children vertices
+	//	out_edge_iterator out_i, out_end;
+	//	edge_descriptor e;
+	//	for (boost::tie(out_i, out_end) = out_edges(testJob->g[*vp.first].name, testJob->g); out_i != out_end; ++out_i) 
+	//	{
+	//		e = *out_i;
+	//		Vertex tgt = target(e,testJob->g);
+	//		taskVertex* child = &testJob->g[tgt];
+	//		testJob->g[*vp.first].children.push_back(child);
+	//	}
+	//}
+
 	vp=vertices(testJob->g);
 	if(policy == 1) {//best fit
 		for(; vp.first!=vp.second; ++vp.first) {
@@ -113,45 +127,84 @@ void GanttConsolidation::Initialization(Job* testJob, int policy)
 	}
 }
 //jobs are currently waiting in the queue for planning
-double GanttConsolidation::Planner(std::vector<Job*> jobs, int threshold)
+pair<double,pair<double,double> > GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
 {
-	if(jobs.size() == 0)
-		return 0;
+	if(jobs.size() == 0){
+		pair<double,pair<double,double> > result;
+		result.first = result.second.first = result.second.second = 0;
+		return result;
+	}
 	int count = 0;
 	double cost = 0;
+	//the number of deadline violations in this plan
+	double violate = 0;
+	double totaltime = 0;
+	pair<double, pair<double,double> > result;
 	//construct a priority queue to store VMs that hourly covers tasks' requests
-	std::vector<VM*> VM_queue[types];
-	std::pair<vertex_iter, vertex_iter> vp; 
+	vector<VM*> VM_queue[types];	
+	pair<vertex_iter, vertex_iter> vp; 
 	//std::priority_queue<VM*> VM_pque;
 	for(int i=0; i<jobs.size(); i++) {		
+		vector<taskVertex*> alltasks;
 		vp = vertices(jobs[i]->g);
-		for(; vp.first!=vp.second; ++vp.first) {
-			if(jobs[i]->g[*vp.first].start_time!=jobs[i]->g[*vp.first].end_time){
+		for(; vp.first!=vp.second; ++vp.first)
+			alltasks.push_back(&jobs[i]->g[*vp.first]);
+		for(int j=0; j<alltasks.size(); j++){
+			//find the children of all tasks
+			//get children vertices
+			out_edge_iterator out_i, out_end;
+			edge_descriptor e;
+			for (boost::tie(out_i, out_end) = out_edges(jobs[i]->g[j].name, jobs[i]->g); out_i != out_end; ++out_i) 
+			{
+				e = *out_i;
+				Vertex tgt = target(e,jobs[i]->g);				
+				alltasks[j]->children.push_back(alltasks[tgt]);
+			}
+		}
+		for(int j=0; j<alltasks.size(); j++){
+			if(alltasks[j]->start_time!=alltasks[j]->end_time){
 				VM* vm = new VM();
-				vm->type = jobs[i]->g[*vp.first ].assigned_type;
+				vm->type = alltasks[j]->assigned_type;
 				vector<taskVertex*> cotasks;
-				cotasks.push_back(&jobs[i]->g[*vp.first]);
+				cotasks.push_back(alltasks[j]);
 				vm->assigned_tasks.push_back(cotasks);
-				//vm->assigned_tasks.push_back(&jobs[i]->g[*vp.first]);
-				vm->start_time = jobs[i]->g[*vp.first ].start_time;
-				vm->life_time = std::ceil((jobs[i]->g[*vp.first ].end_time-jobs[i]->g[*vp.first ].start_time)/60)*60;			
-				vm->resi_time = vm->life_time - (jobs[i]->g[*vp.first ].end_time-jobs[i]->g[*vp.first ].start_time);
+				vm->start_time = alltasks[j]->start_time;
+				vm->life_time = ceil((alltasks[j]->end_time - alltasks[j]->start_time)/60)*60;			
+				vm->resi_time = vm->life_time - (alltasks[j]->end_time - alltasks[j]->start_time);
 				vm->end_time = vm->start_time + vm->life_time - vm->resi_time;
-				
-				//vm->dependentVMs.insert();
-				//vm->price = priceOnDemand[vm->type];
 				VM_queue[vm->type].push_back(vm);
 			}
 		}
+		//for(; vp.first!=vp.second; ++vp.first) {
+		//	if(jobs[i]->g[*vp.first].start_time!=jobs[i]->g[*vp.first].end_time){
+		//		VM* vm = new VM();
+		//		vm->type = jobs[i]->g[*vp.first ].assigned_type;
+		//		vector<taskVertex*> cotasks;
+		//		cotasks.push_back(&jobs[i]->g[*vp.first]);
+		//		vm->assigned_tasks.push_back(cotasks);
+		//		//vm->assigned_tasks.push_back(&jobs[i]->g[*vp.first]);
+		//		vm->start_time = jobs[i]->g[*vp.first ].start_time;
+		//		vm->life_time = std::ceil((jobs[i]->g[*vp.first ].end_time-jobs[i]->g[*vp.first ].start_time)/60)*60;			
+		//		vm->resi_time = vm->life_time - (jobs[i]->g[*vp.first ].end_time-jobs[i]->g[*vp.first ].start_time);
+		//		vm->end_time = vm->start_time + vm->life_time - vm->resi_time;
+		//		
+		//		//vm->dependentVMs.insert();
+		//		//vm->price = priceOnDemand[vm->type];
+		//		VM_queue[vm->type].push_back(vm);
+		//	}
+		//}
 	}
 	int num_vms = 0;
+	double originalcost = 0;
 	//define capacity of each type of VMs
-	for(int i=0; i<types; i++)
+	for(int i=0; i<types; i++) {
 		for(int j=0; j<VM_queue[i].size(); j++) {
 			VM_queue[i][j]->capacity = std::pow(2.0,i) - 1; //already 1 in the vm
 			num_vms += 1;
+			originalcost += priceOnDemand[i]*VM_queue[i][j]->life_time/60.0;
 		}
-
+	}	
+	double savethisround=0;
 	do{	
 		//sort according to the start time of each VM
 		for(int i=0; i<types; i++) 
@@ -159,357 +212,70 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int threshold)
 		
 		//start the operators 
 		//if this condition, do move or split
-		double residualtime = 20.0; 
-		bool domove = false;
-		bool dosplit = false;
-		double costsplit = 0;
-		double costmove = 0;
-		for(int i=0; i<types; i++){
-			for(int j=0; j<VM_queue[i].size(); j++) {
-				bool condition = false;
-				int outiter;
-				double endtime;
-				double starttime;
-				double leftovertime;
-				for(int out=0; out<VM_queue[i][j]->assigned_tasks.size(); out++){
-					int insize = VM_queue[i][j]->assigned_tasks[out].size();
-					//keep sorted at runtime
-					//sort(VM_queue[i][j]->assigned_tasks[out].begin(),VM_queue[i][j]->assigned_tasks[out].end(),taskfunction);
-					leftovertime = VM_queue[i][j]->resi_time;
-					if(leftovertime >= residualtime)	{
-						condition = true;
-						outiter = out;
-						endtime = VM_queue[i][j]->assigned_tasks[out][insize-1]->end_time;
-						starttime = VM_queue[i][j]->assigned_tasks[out][0]->start_time;
-						break;
-					}
-				}
-				//move with the out-th task queue of the ij vm
-				if(condition) { //out-th queue residual time longer than threshold
-					for(int k=0; k<VM_queue[i].size(); k++){
-						if(k!=j && VM_queue[i][k]->assigned_tasks.size()==1){//only merge with a VM without coscheduling tasks
-							//task k starts before the end of task j, then move k to the end of task j and merge them
-							// ik:        |----------         |
-							// ij: --------------
-							if(VM_queue[i][k]->start_time < endtime && (60.0 - VM_queue[i][k]->resi_time) <= leftovertime) {//can merge
-								double moveafter = endtime - VM_queue[i][k]->start_time;
-								bool deadlineok = true;
-								for(int in = 0; in<VM_queue[i][k]->assigned_tasks[0].size(); in++){
-									Job* jobinvm = jobs[VM_queue[i][k]->assigned_tasks[0][in]->job_id];
-									vp = vertices(jobinvm->g);
-									int vend = *(vp.second - 1);
-									if(jobinvm->g[vend].end_time + moveafter > jobinvm->deadline) {
-										deadlineok = false;
-										break;
-									}
-								}
-								if(deadlineok) {//deadline is long enough to move k afterwards
-									double t1 = endtime - starttime;
-									double t2 = VM_queue[i][k]->life_time - VM_queue[i][k]->resi_time;
-									costmove = move(i,t1,t2);
-									if(costmove > 0) {		
-										domove = true;
-										move_operation1(jobs,VM_queue[i][k],VM_queue[i][j],outiter,moveafter);
-										VM_queue[i].erase(VM_queue[i].begin()+k);									
-									}
-									break;//or k--;
-								}
-								else if(VM_queue[i][k]->start_time < starttime )//move vm j afterward to the end of vm k
-								{//if at least one task in VM k cannot cannot finish before deadline, need to split VM j
-									bool deadlineok = true;
-									double jmoveafter = VM_queue[i][k]->end_time - starttime;
-									if(jmoveafter < 0) jmoveafter = 0;
-									for(int out=0; out<VM_queue[i][j]->assigned_tasks.size();out++){
-										for(int in=0; in<VM_queue[i][j]->assigned_tasks[out].size();in++){
-											Job* curr_job = jobs[VM_queue[i][j]->assigned_tasks[out][in]->job_id];
-											vp = vertices(curr_job->g);
-											int vend = *(vp.second - 1);
-											if(curr_job->g[vend].end_time + jmoveafter > curr_job->deadline) {
-												deadlineok = false;
-												break;
-											}
-										}
-									}
-									if(deadlineok){ //move vm j to the end of vm k do not violdate deadline							
-										double t1 = endtime - starttime;
-										double t2 = VM_queue[i][k]->life_time - VM_queue[i][k]->resi_time;
-										costmove = move(i,t1,t2);
-										if(costmove > 0) {
-											dosplit = true;
-											split_operation(jobs,VM_queue[i][j],outiter,VM_queue[i][k],jmoveafter);
-											VM_queue[i].erase(VM_queue[i].begin()+k);
-											//VM_queue[i].erase(VM_queue[i].begin()+j);
-										}
-										break; //or k--;
-									}
-								}								
-							}
-							else if(VM_queue[i][k]->start_time >= endtime && (60.0 - VM_queue[i][k]->resi_time)<= VM_queue[i][j]->start_time +VM_queue[i][j]->life_time - VM_queue[i][k]->start_time){
-								//VM k starts before the lifetime of j, but after the end of j
-								//ik:              |-------
-								//ij: |-----------
-								double t1 = endtime - starttime;
-								double t2 = VM_queue[i][k]->life_time - VM_queue[i][k]->resi_time;
-								costmove = priceOnDemand[i]*(ceil((endtime-starttime)/60.0) + VM_queue[i][k]->life_time/60.0 - ceil((VM_queue[i][k]->end_time -starttime)/60));
-								//do not need to update any task
-								if(costmove > 0) {
-									domove = true;
-									move_operation2(jobs, VM_queue[i][k], VM_queue[i][j],outiter);
-									VM_queue[i].erase(VM_queue[i].begin()+k);
-								}
-								break; //or k--
-							}
-						}
-						if(domove || dosplit) break;
-					}
-				}	
-			}
-			 if(domove || dosplit) break;
+		double savemove = 0;
+		double savedemote = 0;
+		double savepromote = 0;
+		double demotecount = 0;
+		double movecount = 0;
+		double promotecount = 0;
+		/*while(demotecount<10){
+			double save=opDemote(VM_queue,jobs);
+			savedemote += save;
+			if(save==0) demotecount++;
 		}
+		while(movecount<10){
+			double save=opMove(VM_queue,jobs);
+			savemove += save;
+			if(save==0) movecount++;
+		}*/
+		//savemove = opMove(VM_queue,jobs);
+		//savepromote = opPromote(VM_queue,jobs);
+		savedemote = opDemote(VM_queue,jobs);
 		//the number of VMs saved by move
-		int num_vms_move = 0;
+		/*int num_vms_move = 0;
 		for(int i=0; i<types; i++)
 			for(int j=0; j<VM_queue[i].size(); j++)
 				if(!VM_queue[i][j]->assigned_tasks.empty()) num_vms_move += 1;
-		int num_vms_saved = num_vms - num_vms_move;
+		int num_vms_saved = num_vms - num_vms_move;*/
 		//printf("The overall number of VMs saved by move operation is %d\n",num_vms_saved);
 
-		//if satisfy this condition, do promote or demote
-		bool dopromote = false;
-		bool dodemote = false;
-		double costpromote = 0;
-		double costdemote = 0;
-		std::vector<VM*> VMs;
-		for(int i=0; i<types; i++) 
-			for(int j=0; j<VM_queue[i].size(); j++) 
-				VMs.push_back(VM_queue[i][j]);
-		std::sort(VMs.begin(),VMs.end(),vmfunction);
+		
+		savethisround = savemove+savedemote+savepromote;
+		if(savethisround <= 0) count++;
 
-		for(int i=0; i<VMs.size(); i++){
-			//demote from worst to type-1, select the one do not violate deadline and has the highest gain
-			//when demote, consider the merge cost			
-			for(int j=0; j<VMs[i]->type; j++){
-				//demote to type j
-				if(pow(2.0,VMs[i]->type) - std::pow(2.0,j) <= VMs[i]->capacity){//leftover capacity can support demotion
-					bool deadlineok = true;
-					for(int out=0; out<VMs[i]->assigned_tasks.size(); out++){	
-						double moveafter=0;
-						for(int in=0; in<VMs[i]->assigned_tasks[out].size(); in++){							
-							Job* currentJob = jobs[VMs[i]->assigned_tasks[out][in]->job_id];
-							vp = vertices(currentJob->g);
-							double exetime = VMs[i]->assigned_tasks[out][in]->end_time - VMs[i]->assigned_tasks[out][in]->start_time;
-							double newexetime = exetime*VMs[i]->assigned_tasks[out][in]->estTime[j]/VMs[i]->assigned_tasks[out][in]->estTime[VMs[i]->type];
-							if(currentJob->g[*(vp.second-1)].end_time + moveafter + newexetime - exetime > currentJob->deadline)
-							{
-								deadlineok = false;
-								break;
-							}
-							if(in<VMs[i]->assigned_tasks[out].size()-1){
-								double blank = VMs[i]->assigned_tasks[out][in+1]->start_time - VMs[i]->assigned_tasks[out][in]->end_time;
-								moveafter += newexetime - exetime - blank;
-								if(moveafter < 0) moveafter = 0;
-							}
-						}
-						if(!deadlineok) break;
-					}
-					if(deadlineok) {
-						dodemote = true;
-						//demote vm i to type j
-						int oldtype = VMs[i]->type;
-						demote_operation(jobs,VMs[i],j);
-						VM_queue[j].push_back(VMs[i]);
-						for(int iter=0; iter<VM_queue[oldtype].size();iter++)
-							if(VM_queue[oldtype][iter] == VMs[i])
-								VM_queue[oldtype].erase(VM_queue[oldtype].begin()+iter);
-						//test for merge
-						bool merge = false;
-						for(int k=0; k<VM_queue[j].size()-1; k++){
-							if(VM_queue[j][k]->assigned_tasks.size()==1) {
-								for(int out=0; out<VMs[i]->assigned_tasks.size(); out++){
-									int taskend = VMs[i]->assigned_tasks[out].size()-1;		
-									bool condition = (VM_queue[j][k]->start_time > VMs[i]->assigned_tasks[out][taskend]->end_time)&&(
-										VM_queue[j][k]->end_time < VMs[i]->end_time);
-									if(condition){			
-										merge = true;
-										double t1 = VMs[i]->assigned_tasks[out][taskend]->end_time - VMs[i]->assigned_tasks[out][0]->start_time;
-										double t2 = VM_queue[j][k]->life_time - VM_queue[j][k]->resi_time;
-										//move VM k to the end of the out-th queue of VM i
-										move_operation2(jobs,VM_queue[j][k],VMs[i],out);
-										VM_queue[j].erase(VM_queue[j].begin()+k);
-										int pos=0;
-										for(; pos<VMs.size(); pos++)
-											if(VMs[pos]==VM_queue[j][k]) break;
-										VMs.erase(VMs.begin() + pos);
-									}
-									if(merge) break;
-								}
-							}
-							if(merge) break;
-						}
-					}
-				}
-				if(dodemote) break;
-			}
-			
-			for(int j=VMs[i]->type+1; j<types; j++) {
-				//promote to type j
-				//newtime is the time of vm i after promotion
-				double oldtime =VMs[i]->end_time-VMs[i]->start_time, newtime =0;
-				for(int out=0; out<VMs[i]->assigned_tasks.size(); out++) {
-					double timeout = VMs[i]->assigned_tasks[out][0]->start_time;
-					double maxtime = timeout + VMs[i]->assigned_tasks[out][0]->estTime[j];
-					for(int in=1; in<VMs[i]->assigned_tasks[out].size(); in++) {
-						timeout = (maxtime>VMs[i]->assigned_tasks[out][in]->start_time)?maxtime:VMs[i]->assigned_tasks[out][in]->start_time;
-						newtime =  timeout + VMs[i]->assigned_tasks[out][in]->estTime[j];
-					}
-					if(maxtime>newtime) newtime = maxtime;
-				}
-				newtime = newtime - VMs[i]->start_time;
-				double costbypromote = ppromote(VMs[i]->type,oldtime,j,newtime);
+		//cost saved in this iteration
+		double iteratecost = 0;
+		for(int i=0; i<types; i++)
+			for(int j=0; j<VM_queue[i].size(); j++)
+				iteratecost += priceOnDemand[i]*VM_queue[i][j]->life_time/60.0;
 
-				//find out if there is a vm to be merged, if no, dont promote
-				for(int k=0; k<VM_queue[j].size(); k++) {
-					if(VM_queue[j][k]->assigned_tasks.size()==1) {
-						for(int out=0; out<VMs[i]->assigned_tasks.size(); out++) {
-							int endtask = VMs[i]->assigned_tasks[out].size() -1;
-							if(VM_queue[j][k]->start_time<=VMs[i]->assigned_tasks[out][endtask]->end_time){//????? && VM_queue[j][k]->end_time < VMs[i]->start_time+VMs[i]->life_time
-								//k in front of i.out
-								//first promote then merge								
-								double t1 = VM_queue[j][k]->end_time - VM_queue[j][k]->start_time;							
-								//double t2 = VMs[i]->assigned_tasks[out][endtask]->end_time - VMs[i]->assigned_tasks[out][0]->start_time;
-								double savebymerge = move(j,t1,newtime);
-								if(savebymerge+costbypromote > 0) {
-									dopromote = true;
-									int type = VMs[i]->type;
-									int pos = 0;
-									for(; pos<VM_queue[type].size(); pos++ )
-										if(VM_queue[type][pos] == VMs[i]) break;
-									promote_operation(jobs,VMs[i],j);	
-									VM_queue[j].push_back(VMs[i]);
-									VM_queue[type].erase(VM_queue[type].begin()+pos);
-									move_operation2(jobs,VM_queue[j][k],VMs[i],out);
-									VM_queue[j].erase(VM_queue[j].begin()+k);
-									break;	
-								}
-							}	
-							if(dopromote) break;
-						}						
-					}
-					if(dopromote) break;
-				}	
-				if(dopromote) break;
-			}
-			if(dodemote || dopromote) break;
-		}
-
-		bool docoschedule = false;
-		bool domerge = false;
-		double costmerge = 0;
-		double costcoschedule = 0;
-		//co-scheduling
-		//double degradation = 0.2;
-		for(int i=0; i<VMs.size(); i++) {
-			if(VMs[i]->capacity > 0){ //have space for co-scheduling
-				bool deadlineoki = true;
-				double tightest_before_deadline_i = VMs[i]->assigned_tasks[0][0]->sub_deadline - VMs[i]->assigned_tasks[0][0]->end_time;				
-				for(int out=0; out<VMs[i]->assigned_tasks.size(); out++) {
-					for(int in=0; in<VMs[i]->assigned_tasks[out].size(); in++) {
-						Job* job=jobs[VMs[i]->assigned_tasks[out][in]->job_id];
-						vp = vertices(job->g);
-						if(job->g[0].start_time + (job->g[*(vp.second-1)].end_time-job->g[0].start_time)*(1+degradation) > job->deadline) {
-							deadlineoki = false;
-							break;
-						}
-						if(VMs[i]->assigned_tasks[out][in]->sub_deadline - VMs[i]->assigned_tasks[out][in]->sub_deadline < tightest_before_deadline_i)
-							tightest_before_deadline_i = VMs[i]->assigned_tasks[out][in]->sub_deadline - VMs[i]->assigned_tasks[out][in]->end_time;				
-					}
-					if(!deadlineoki) break;
-				}
-				if(deadlineoki) {
-					for(int j=0; j<VMs.size(); j++) {				
-						if(i != j && VMs[i]->capacity - (std::pow(2.0,VMs[j]->type)-VMs[j]->capacity) >= 0) {
-							double tightest_before_deadline_j = 0;
-							double moveafter;
-							if(VMs[j]->start_time < VMs[i]->start_time) 
-								moveafter = VMs[i]->start_time - VMs[j]->start_time;
-							else moveafter = 0;
-							bool deadlineokj = true;
-							for(int out=0; out<VMs[j]->assigned_tasks.size(); out++){
-								for(int in=0; in<VMs[j]->assigned_tasks[out].size(); in++){
-									Job* job = jobs[VMs[j]->assigned_tasks[out][in]->job_id];
-									vp = vertices(job->g);
-									if(job->g[0].start_time + (job->g[*(vp.second-1)].end_time-job->g[0].start_time)*(1+degradation) > job->deadline){
-										deadlineokj = false;
-										break;
-									}
-								} if(!deadlineokj) break;
-							}
-							if(deadlineokj){
-								tightest_before_deadline_j = VMs[j]->assigned_tasks[0][0]->sub_deadline - VMs[j]->assigned_tasks[0][0]->end_time;
-								for(int out=0; out<VMs[j]->assigned_tasks.size(); out++)
-									for(int in=0; in<VMs[j]->assigned_tasks[out].size(); in++)
-										if(VMs[j]->assigned_tasks[out][in]->sub_deadline - VMs[j]->assigned_tasks[out][in]->sub_deadline < tightest_before_deadline_j)
-											tightest_before_deadline_j = VMs[j]->assigned_tasks[out][in]->sub_deadline - VMs[j]->assigned_tasks[out][in]->end_time;
-								
-								if(std::abs((tightest_before_deadline_i - tightest_before_deadline_j)/tightest_before_deadline_i) < 0.1) { //distances to deadline are close
-									/*double t1 = VMs[i]->end_time-VMs[i]->start_time;
-									double t2 = VMs[j]->end_time - VMs[j]->start_time;
-									double t3 = t1;
-									double t4 = 0;
-									for(int taskiter=0; taskiter<VMs[j]->assigned_tasks.size(); taskiter++)
-										if(t4 < VMs[j]->assigned_tasks[taskiter]->end_time) t4 = VMs[j]->assigned_tasks[taskiter]->end_time;
-									double coschedulecost = coschedule(VMs[i]->type,VMs[j]->type,VMs[i]->type,t1,t2,t3,t4,degradation);
-									if(coschedulecost > 0){*/
-									docoschedule = true;
-									int type = VMs[j]->type;
-									int pos = 0;
-									for(; pos < VM_queue[type].size(); pos++)
-										if(VM_queue[type][pos] == VMs[j]) break;
-									coschedule_operation(jobs,VMs[i],VMs[j],degradation);
-									VMs.erase(VMs.begin()+j);
-									VM_queue[type].erase(VM_queue[type].begin()+pos);
-									break;
-									//}
-								}
-							}							
-						}
-					}
-				}
-			}
-			if(docoschedule) break;
-		}
-		//merge
-		for(int i=0; i<types; i++) {
-			for(int k=0; k< VM_queue[i].size(); k++) {
-				//do until nothing can be done, merge with the VM after it
-				for(int j=0; j<VM_queue[i].size(); j++){
-					if(VM_queue[i][k]->end_time < VM_queue[i][j]->start_time &&
-						VM_queue[i][k]->resi_time + VM_queue[i][j]->resi_time < 60 &&
-						VM_queue[i][k]->assigned_tasks.size() == 1 && VM_queue[i][j]->assigned_tasks.size() == 1) {// can merge
-						domerge = true;
-						double t1 = VM_queue[i][k]->end_time - VM_queue[i][k]->start_time;
-						double t2 = VM_queue[i][j]->end_time - VM_queue[i][j]->start_time;
-						costmerge += move(i,t1,t2);
-						int pos = 0;
-						for(; pos<VMs.size(); pos++)
-							if(VMs[pos] == VM_queue[i][j]) break;
-						move_operation2(jobs,VM_queue[i][j],VM_queue[i][k],0);
-						VM_queue[i].erase(VM_queue[i].begin()+j);
-						VMs.erase(VMs.begin()+pos);
-						break;//break or continue?? j--;
-					}
-				}
-				if(domerge) break;
-			}
-			if(domerge) break;
-		}
-		if(!(domove || dosplit || dodemote || dopromote || docoschedule || domerge)) count++;
-	}while(count<threshold);
+		double costsaved = originalcost - iteratecost;
+		printf("cost saved in this iteration is: %4f\n", costsaved);
+		if(costsaved < 0)
+			printf("cost < 0, stop here\n");
+		originalcost = iteratecost;
+	}while(count<2);//threshold);
 	for(int i=0; i<types; i++)
 		for(int j=0; j<VM_queue[i].size(); j++)
-			cost += priceOnDemand[i]*VM_queue[i][j]->life_time;
-	
-	return cost;
+			cost += priceOnDemand[i]*VM_queue[i][j]->life_time/60.0;
+
+	vp = vertices(jobs[0]->g);
+	int numtasks = *vp.second - *vp.first -2;
+	for(int i=0; i< types; i++)
+		for(int j=0; j<VM_queue[i].size(); j++)
+			for(int out=0; out<VM_queue[i][j]->assigned_tasks.size(); out++)
+				for(int in=0; in<VM_queue[i][j]->assigned_tasks[out].size(); in++)
+					if(VM_queue[i][j]->assigned_tasks[out][in]->name == numtasks){
+						if(VM_queue[i][j]->assigned_tasks[out][in]->end_time > VM_queue[i][j]->assigned_tasks[out][in]->sub_deadline)
+							violate += 1;
+						totaltime += VM_queue[i][j]->assigned_tasks[out][in]->end_time;
+					}
+
+	result.first= cost;
+	result.second.first = violate;
+	result.second.second = totaltime;
+
+	return result;
 }
 void GanttConsolidation::Simulate(Job testJob)
 {
@@ -549,6 +315,8 @@ void GanttConsolidation::Simulate(Job testJob)
 	int threshold = 10; //when more than thrshold times no gain, stop the operations
 	int timer = 0;
 	double totalcost = 0;
+	int violate = 0;
+	double totaltime = 0;
 	while(timer < max_t) {
 		std::vector<Job*> jobs;
 		//pop all jobs waiting and start planning
@@ -565,28 +333,34 @@ void GanttConsolidation::Simulate(Job testJob)
 				std::pair<vertex_iter, vertex_iter> vp = vertices(jobs[i]->g);
 				for(; vp.first != vp.second; ++vp.first) {
 					jobs[i]->g[*vp.first].job_id = i;
-					jobs[i]->g[*vp.first].start_time += jobs[i]->arrival_time;
-					jobs[i]->g[*vp.first].end_time += jobs[i]->arrival_time;
+					//all jobs in the queue start at the same time when it's later than their arrival time
+					jobs[i]->g[*vp.first].start_time += timer; //jobs[i]->arrival_time;
+					jobs[i]->g[*vp.first].end_time += timer; //jobs[i]->arrival_time;
 					jobs[i]->g[*vp.first].sub_deadline += jobs[i]->arrival_time;
 				}
 			}
 			printf("current time is: %d\n", timer);
-			double cost = Planner(jobs, threshold);
-			totalcost += cost;
+			pair<double, pair<double,double> >cost = Planner(jobs, timer);
+			totalcost += cost.first;
+			violate += cost.second.first;
+			totaltime += cost.second.second;
 		}
 		timer ++;
 	}
 	//the end of simulation
-	//calculate the deadline violation rate
-	int violate = 0;
-	for(int i=0; i<workflows.size(); i++) {
-		std::pair<vertex_iter, vertex_iter> vp;
-		vp = vertices(workflows[i]->g);
-		int vend = *(vp.second -1);
-		if(workflows[i]->g[vend].end_time > workflows[i]->deadline)
-			violate += 1;
-	}
+	//calculate the deadline violation rate and average execution time
+	
+	//for(int i=0; i<workflows.size(); i++) {
+	//	std::pair<vertex_iter, vertex_iter> vp;
+	//	vp = vertices(workflows[i]->g);
+	//	int vend = *(vp.second -1);
+	//	if(workflows[i]->g[vend].end_time > workflows[i]->deadline)
+	//		violate += 1;
+	//	totaltime += (workflows[i]->g[vend].end_time - workflows[i]->g[0].start_time); //workflows[i]->arrival_time);
+	//}
+	double averagetime = (double)totaltime/workflows.size();
 	double violate_rate = (double)violate/workflows.size();
 	printf("deadline violation rate is: %4f\n",violate_rate);
 	printf("total cost is: %4f\n",totalcost);
+	printf("average execution time is: %4f\n",averagetime);
 }
