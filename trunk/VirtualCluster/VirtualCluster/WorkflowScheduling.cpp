@@ -233,7 +233,7 @@ int main(int argc, char** argv)
 		add_edge(18,19,testJob.g);
 		add_edge(19,20,testJob.g);
 	}
-	else if(strcmp(argv[2], "Ligo") == 0) {
+	else if(strcmp(argv[2], "Ligo") == 0) {//longest running time is 1080
 		testJob.type = Ligo;
 		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//42
 		for(int i=0; i<40+2; i++){
@@ -396,17 +396,12 @@ int main(int argc, char** argv)
 		alg2.Simulate(testJob);
 	}
 	else if(strcmp(argv[1], "consolidation") == 0){
-		GanttConsolidation alg3;
-		//Initialization
-		if(strcmp(argv[12],"bestfit") == 0) alg3.Initialization(&testJob,1);
-		else if(strcmp(argv[12],"worstfit") == 0) alg3.Initialization(&testJob,2);
-		else if(strcmp(argv[12],"mostefficient") == 0) alg3.Initialization(&testJob,3);
+		GanttConsolidation alg3;			
 		
-		vp = vertices(testJob.g);
-		for(; vp.first!=vp.second; ++vp.first) 
-			testJob.g[*vp.first].sub_deadline = testJob.deadline;
-		
-		alg3.Simulate(testJob);
+		//simulation
+		if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,1);
+		else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,2);
+		else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,3);		
 	}
 
 	std::clock_t endtime = std::clock();

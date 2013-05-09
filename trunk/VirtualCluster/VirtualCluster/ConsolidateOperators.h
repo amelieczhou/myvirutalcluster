@@ -4,7 +4,7 @@
 //update the start and end time of tasks, according to their choice of VM type
 void BFS_update(Job* testJob);
 //update the start and end time of tasks after task_no
-bool time_flood(taskVertex* task);//(Job* testJob, int task_no);
+bool time_flood(Job* testJob, int task_no);
 //cost estimation of the consolidation operators, return the gain of the operation
 double move(int type, double x, double y, double total); //VM type, execution time of two tasks before move on type 
 double ppromote(int type1, double t1, int type2, double t2);
@@ -31,7 +31,8 @@ double opCoschedule(vector<VM*>*  VMs, vector<Job*> jobs);
 
 bool updateVMqueue(vector<VM*>* VMs);
 //void siteRecovery(vector<Job*> jobs, VM* vm);
-
+void deepcopy(VM* vm1, VM* vm2); //copy vm2 to vm1
+void deepdelete(vector<vector<VM*> > vmqueue);
 bool vmfunction(VM* a, VM* b);
 bool taskfunction(taskVertex* a, taskVertex* b);
 bool comp_by_first(pair<double, pair<int,int> > a, pair<double, pair<int,int> > b);

@@ -10,7 +10,8 @@ const double priceOnDemand[] = {0.095, 0.19, 0.38, 0.76};
 const double OnDemandLag = 5;//0;
 //const double Times[4][types] = {{120,65,38,24},{90,50,30,20},{60,35,23,17},{30,20,15,13}};
 //const double Times[4][types] = {{12,7,4,2},{9,5,3,2},{6,4,2,1},{3,2,2,1}};
-const double Times[4][types] = {{210,110,58,32},{150,80,45,28},{90,50,30,20},{30,20,15,13}};
+//const double Times[4][types] = {{210,110,58,32},{150,80,45,28},{90,50,30,20},{30,20,15,13}};
+const double Times[4][types] = {{200,105,58,34},{140,75,43,27},{80,45,28,19},{40,25,18,14}};
 const double inter_time = 5; //time interval between 2 vms less than inter_time can be merged
 const double idle_interval = 30; //a vm has been idle for idle_interval has to be turned off
 const double degradation = 0.2;
@@ -112,6 +113,30 @@ public:
 	int capacity; //for coscheduling, stands for the number of tasks can be executed at the same time
 
 	VM() { life_time = idle_time = in_use = start_time = resi_time = 0; curr_task = NULL; }
+	//VM(const VM& vm) {//deep copy
+	//	if(this!=&vm){
+	//		type = vm.type;	capacity = vm.capacity;	end_time = vm.end_time; life_time = vm.life_time; in_use = vm.in_use;
+	//		idle_time = vm.idle_time; start_time = vm.start_time; resi_time = vm.resi_time;
+	//		//curr_task = new taskVertex();
+	//		//memcpy(curr_task,vm.curr_task,sizeof(taskVertex));
+	//		for(int i=0; i<vm.assigned_tasks.size(); i++){
+	//			vector<taskVertex*> tasks;
+	//			for(int j=0; j<vm.assigned_tasks[i].size(); j++){
+	//				taskVertex* task = new taskVertex();
+	//				memcpy(task,vm.assigned_tasks[i][j],sizeof(taskVertex));
+	//				//*task = *vm.assigned_tasks[i][j];
+	//				tasks.push_back(task);
+	//			}
+	//			assigned_tasks.push_back(tasks);
+	//		}
+	//	}
+	//}
+	//~VM() {
+	//	//delete curr_task; 
+	//	for(int i=0; i<assigned_tasks.size(); i++)
+	//		for(int j=0; j<assigned_tasks[i].size(); j++)
+	//			delete assigned_tasks[i][j];
+	//}
 };
 
 class Point {

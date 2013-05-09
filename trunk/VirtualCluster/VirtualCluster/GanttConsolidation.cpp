@@ -47,7 +47,7 @@ void GanttConsolidation::Initialization(Job* testJob, int policy)
 		}
 	}
 	else if(policy == 3) {//most efficient
-		for(; vp.first!=vp.second; ++vp.first) {
+		/*for(; vp.first!=vp.second; ++vp.first) {
 			Vertex v1 = *vp.first;
 			int max_type=0; double max=std::ceil(testJob->g[v1].estTime[0]/60.0)*priceOnDemand[0];
 			for(int i=1; i<types; i++) {
@@ -55,7 +55,23 @@ void GanttConsolidation::Initialization(Job* testJob, int policy)
 				if(tmp<max) max_type = i;
 			}
 			testJob->g[v1].assigned_type = max_type;
+		}*/
+		//use autoscaling as input
+		for(; vp.first!=vp.second; ++vp.first) //edge weight for communication cost
+		{
+			Vertex v1 = *vp.first;
+			testJob->g[v1].prefer_type = types-1;
 		}
+			
+		testJob->deadline_assign();
+
+		//task configuration, find the prefered VM type for tasks
+		vp = vertices(testJob->g);
+		for(; vp.first != vp.second; ++vp.first)
+			testJob->g[*vp.first].instance_config();
+		vp = vertices(testJob->g);
+		for(; vp.first != vp.second; ++vp.first)
+			testJob->g[*vp.first].assigned_type = testJob->g[*vp.first].prefer_type;
 	}
 	//make sure the deadline, update start time and end time
 	BFS_update(testJob);
@@ -109,8 +125,8 @@ void GanttConsolidation::Initialization(Job* testJob, int policy)
 			//change two tasks at the same time
 			vp = vertices(testJob->g);
 			int size_tasks = *vp.second - *vp.first - 1;
-			int task1 = (double)rand() / RAND_MAX * size_tasks;
-			int task2 = (double)rand() / RAND_MAX * size_tasks;
+			int task1 = (double)rand() / (RAND_MAX+1) * size_tasks;
+			int task2 = (double)rand() / (RAND_MAX+1) * size_tasks;
 			//std::cout<<task1<<", "<<task2;
 			if(testJob->g[task1].assigned_type<types-1 && testJob->g[task2].assigned_type<types-1) {
 				testJob->g[task1].assigned_type += 1;
@@ -127,73 +143,82 @@ void GanttConsolidation::Initialization(Job* testJob, int policy)
 	}
 }
 //jobs are currently waiting in the queue for planning
-pair<double,pair<double,double> > GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
+double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
 {
 	if(jobs.size() == 0){
-		pair<double,pair<double,double> > result;
+		/*pair<double,pair<double,double> > result;
 		result.first = result.second.first = result.second.second = 0;
-		return result;
+		return result;*/
+		return 0;
 	}
 	int count = 0;
 	double cost = 0;
 	//the number of deadline violations in this plan
 	double violate = 0;
 	double totaltime = 0;
-	pair<double, pair<double,double> > result;
+	//pair<double, pair<double,double> > result;
 	//construct a priority queue to store VMs that hourly covers tasks' requests
 	vector<VM*> VM_queue[types];	
 	pair<vertex_iter, vertex_iter> vp; 
 	//std::priority_queue<VM*> VM_pque;
 	for(int i=0; i<jobs.size(); i++) {		
-		vector<taskVertex*> alltasks;
+	//	vector<taskVertex*> alltasks;
 		vp = vertices(jobs[i]->g);
-		for(; vp.first!=vp.second; ++vp.first)
-			alltasks.push_back(&jobs[i]->g[*vp.first]);
-		for(int j=0; j<alltasks.size(); j++){
-			//find the children of all tasks
-			//get children vertices
-			out_edge_iterator out_i, out_end;
-			edge_descriptor e;
-			for (boost::tie(out_i, out_end) = out_edges(jobs[i]->g[j].name, jobs[i]->g); out_i != out_end; ++out_i) 
-			{
-				e = *out_i;
-				Vertex tgt = target(e,jobs[i]->g);				
-				alltasks[j]->children.push_back(alltasks[tgt]);
-			}
-		}
-		for(int j=0; j<alltasks.size(); j++){
-			if(alltasks[j]->start_time!=alltasks[j]->end_time){
+	//	for(; vp.first!=vp.second; ++vp.first)
+	//		alltasks.push_back(&jobs[i]->g[*vp.first]);
+	//	for(int j=0; j<alltasks.size(); j++){
+	//		//find the children of all tasks
+	//		//get children vertices
+	//		out_edge_iterator out_i, out_end;
+	//		edge_descriptor e;
+	//		for (boost::tie(out_i, out_end) = out_edges(jobs[i]->g[j].name, jobs[i]->g); out_i != out_end; ++out_i) 
+	//		{
+	//			e = *out_i;
+	//			Vertex tgt = target(e,jobs[i]->g);				
+	//			alltasks[j]->children.push_back(alltasks[tgt]);
+	//		}
+	//	}
+	//	for(int j=0; j<alltasks.size(); j++){
+	//		if(alltasks[j]->start_time!=alltasks[j]->end_time){
+	//			VM* vm = new VM();
+	//			vm->type = alltasks[j]->assigned_type;
+	//			vector<taskVertex*> cotasks;
+	//			cotasks.push_back(alltasks[j]);
+	//			vm->assigned_tasks.push_back(cotasks);
+	//			vm->start_time = alltasks[j]->start_time;
+	//			vm->life_time = ceil((alltasks[j]->end_time - alltasks[j]->start_time)/60)*60;			
+	//			vm->resi_time = vm->life_time - (alltasks[j]->end_time - alltasks[j]->start_time);
+	//			vm->end_time = vm->start_time + vm->life_time - vm->resi_time;
+	//			VM_queue[vm->type].push_back(vm);
+	//		}
+	//	}
+		for(; vp.first!=vp.second; ++vp.first) {
+			if(jobs[i]->g[*vp.first].start_time!=jobs[i]->g[*vp.first].end_time){
 				VM* vm = new VM();
-				vm->type = alltasks[j]->assigned_type;
+				/*int pointersize = sizeof(VM);
+				int pointersize2 = sizeof(taskVertex);*/
+				vm->type = jobs[i]->g[*vp.first ].assigned_type;
 				vector<taskVertex*> cotasks;
-				cotasks.push_back(alltasks[j]);
+				cotasks.push_back(&jobs[i]->g[*vp.first]);
 				vm->assigned_tasks.push_back(cotasks);
-				vm->start_time = alltasks[j]->start_time;
-				vm->life_time = ceil((alltasks[j]->end_time - alltasks[j]->start_time)/60)*60;			
-				vm->resi_time = vm->life_time - (alltasks[j]->end_time - alltasks[j]->start_time);
-				vm->end_time = vm->start_time + vm->life_time - vm->resi_time;
+				//vm->assigned_tasks.push_back(&jobs[i]->g[*vp.first]);
+				vm->start_time = jobs[i]->g[*vp.first ].start_time;
+				vm->end_time = jobs[i]->g[*vp.first ].end_time;
+				vm->life_time = std::ceil((jobs[i]->g[*vp.first ].end_time-jobs[i]->g[*vp.first ].start_time)/60)*60;			
+				vm->resi_time = vm->life_time +vm->start_time - vm->end_time;				
+				
+				//vm->dependentVMs.insert();
+				//vm->price = priceOnDemand[vm->type];
 				VM_queue[vm->type].push_back(vm);
 			}
 		}
-		//for(; vp.first!=vp.second; ++vp.first) {
-		//	if(jobs[i]->g[*vp.first].start_time!=jobs[i]->g[*vp.first].end_time){
-		//		VM* vm = new VM();
-		//		vm->type = jobs[i]->g[*vp.first ].assigned_type;
-		//		vector<taskVertex*> cotasks;
-		//		cotasks.push_back(&jobs[i]->g[*vp.first]);
-		//		vm->assigned_tasks.push_back(cotasks);
-		//		//vm->assigned_tasks.push_back(&jobs[i]->g[*vp.first]);
-		//		vm->start_time = jobs[i]->g[*vp.first ].start_time;
-		//		vm->life_time = std::ceil((jobs[i]->g[*vp.first ].end_time-jobs[i]->g[*vp.first ].start_time)/60)*60;			
-		//		vm->resi_time = vm->life_time - (jobs[i]->g[*vp.first ].end_time-jobs[i]->g[*vp.first ].start_time);
-		//		vm->end_time = vm->start_time + vm->life_time - vm->resi_time;
-		//		
-		//		//vm->dependentVMs.insert();
-		//		//vm->price = priceOnDemand[vm->type];
-		//		VM_queue[vm->type].push_back(vm);
-		//	}
-		//}
 	}
+
+	/*for(int i=0; i<types; i++)
+		for(int j=0; j<VM_queue[i].size(); j++)
+		{
+			delete VM_queue[i][j];
+		}*/
 	int num_vms = 0;
 	double originalcost = 0;
 	//define capacity of each type of VMs
@@ -215,6 +240,8 @@ pair<double,pair<double,double> > GanttConsolidation::Planner(std::vector<Job*> 
 		double savemove = 0;
 		double savedemote = 0;
 		double savepromote = 0;
+		double savemerge = 0;
+		double mergecount = 0;
 		double demotecount = 0;
 		double movecount = 0;
 		double promotecount = 0;
@@ -230,7 +257,8 @@ pair<double,pair<double,double> > GanttConsolidation::Planner(std::vector<Job*> 
 		}*/
 		//savemove = opMove(VM_queue,jobs);
 		//savepromote = opPromote(VM_queue,jobs);
-		savedemote = opDemote(VM_queue,jobs);
+		//savedemote = opDemote(VM_queue,jobs);
+		savemerge = opMerge(VM_queue,jobs);
 		//the number of VMs saved by move
 		/*int num_vms_move = 0;
 		for(int i=0; i<types; i++)
@@ -240,7 +268,7 @@ pair<double,pair<double,double> > GanttConsolidation::Planner(std::vector<Job*> 
 		//printf("The overall number of VMs saved by move operation is %d\n",num_vms_saved);
 
 		
-		savethisround = savemove+savedemote+savepromote;
+		savethisround = savemove+savedemote+savepromote+savemerge;
 		if(savethisround <= 0) count++;
 
 		//cost saved in this iteration
@@ -259,7 +287,7 @@ pair<double,pair<double,double> > GanttConsolidation::Planner(std::vector<Job*> 
 		for(int j=0; j<VM_queue[i].size(); j++)
 			cost += priceOnDemand[i]*VM_queue[i][j]->life_time/60.0;
 
-	vp = vertices(jobs[0]->g);
+	/*vp = vertices(jobs[0]->g);
 	int numtasks = *vp.second - *vp.first -2;
 	for(int i=0; i< types; i++)
 		for(int j=0; j<VM_queue[i].size(); j++)
@@ -269,15 +297,30 @@ pair<double,pair<double,double> > GanttConsolidation::Planner(std::vector<Job*> 
 						if(VM_queue[i][j]->assigned_tasks[out][in]->end_time > VM_queue[i][j]->assigned_tasks[out][in]->sub_deadline)
 							violate += 1;
 						totaltime += VM_queue[i][j]->assigned_tasks[out][in]->end_time;
-					}
+					}*/
 
-	result.first= cost;
+	/*result.first= cost;
 	result.second.first = violate;
-	result.second.second = totaltime;
+	result.second.second = totaltime;*/
+	for(int i=0; i<types; i++){
+		for(int j=0; j<VM_queue[i].size(); j++){
+			//for(int out=0;out<VM_queue[i][j]->assigned_tasks.size(); out++)
+			//	for(int in=0; in<VM_queue[i][j]->assigned_tasks[out].size(); in++){
+			//		/*delete VM_queue[i][j]->assigned_tasks[out][in];
+			//		VM_queue[i][j]->assigned_tasks[out][in] = NULL;*/
+			//		VM_queue[i][j]->assigned_tasks[out].pop_back();
+			//		in--;
+			//	}
+			VM_queue[i][j]->assigned_tasks.clear();
+			delete VM_queue[i][j];
+			VM_queue[i][j] = NULL;
+		}
+		VM_queue[i].clear();
+	}
 
-	return result;
+	return cost;//result;
 }
-void GanttConsolidation::Simulate(Job testJob)
+void GanttConsolidation::Simulate(Job testJob, int input)
 {
 	std::vector<Job*> workflows; //continuous workflow
 	double arrival_time = 0;
@@ -326,7 +369,12 @@ void GanttConsolidation::Simulate(Job testJob)
 					jobs.push_back(workflows[i]);
 				else {pointer = i; break;}
 			}
-		
+			for(int i=0; i<jobs.size(); i++){
+				jobs[i]->deadline -= timer;
+				Initialization(jobs[i],input);
+				jobs[i]->deadline += timer;
+			}
+					
 			//for tasks to refer to the job they belong to 
 			for(int i=0; i<jobs.size(); i++) {
 				jobs[i]->name = i;
@@ -336,28 +384,44 @@ void GanttConsolidation::Simulate(Job testJob)
 					//all jobs in the queue start at the same time when it's later than their arrival time
 					jobs[i]->g[*vp.first].start_time += timer; //jobs[i]->arrival_time;
 					jobs[i]->g[*vp.first].end_time += timer; //jobs[i]->arrival_time;
-					jobs[i]->g[*vp.first].sub_deadline += jobs[i]->arrival_time;
+					jobs[i]->g[*vp.first].sub_deadline = jobs[i]->deadline;
 				}
 			}
 			printf("current time is: %d\n", timer);
-			pair<double, pair<double,double> >cost = Planner(jobs, timer);
+
+			/*pair<double, pair<double,double> >cost = Planner(jobs, timer);
 			totalcost += cost.first;
 			violate += cost.second.first;
-			totaltime += cost.second.second;
+			totaltime += cost.second.second;*/
+			double cost = Planner(jobs, timer);
+			totalcost += cost;
 		}
 		timer ++;
 	}
 	//the end of simulation
 	//calculate the deadline violation rate and average execution time
 	
-	//for(int i=0; i<workflows.size(); i++) {
-	//	std::pair<vertex_iter, vertex_iter> vp;
-	//	vp = vertices(workflows[i]->g);
-	//	int vend = *(vp.second -1);
-	//	if(workflows[i]->g[vend].end_time > workflows[i]->deadline)
-	//		violate += 1;
-	//	totaltime += (workflows[i]->g[vend].end_time - workflows[i]->g[0].start_time); //workflows[i]->arrival_time);
-	//}
+	for(int i=0; i<workflows.size(); i++) {
+		std::pair<vertex_iter, vertex_iter> vp;
+		vp = vertices(workflows[i]->g);
+		int vend = *(vp.second -1);
+		in_edge_iterator in_i, in_end;
+		edge_descriptor e;
+		double endtime=0;
+		for (boost::tie(in_i, in_end) = in_edges(vend, workflows[i]->g); in_i != in_end; ++in_i) 
+		{
+			e = *in_i;
+			Vertex src = source(e, workflows[i]->g);					
+			if(workflows[i]->g[src].end_time > endtime)
+			{
+				endtime = workflows[i]->g[src].end_time;
+			}
+		}
+		workflows[i]->g[vend].end_time = workflows[i]->g[vend].start_time = endtime;
+		if(workflows[i]->g[vend].end_time > workflows[i]->deadline)
+			violate += 1;
+		totaltime += (workflows[i]->g[vend].end_time - workflows[i]->g[0].start_time); //workflows[i]->arrival_time);
+	}
 	double averagetime = (double)totaltime/workflows.size();
 	double violate_rate = (double)violate/workflows.size();
 	printf("deadline violation rate is: %4f\n",violate_rate);
