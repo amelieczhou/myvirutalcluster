@@ -252,7 +252,7 @@ void AutoScaling::Simulate(Job testJob) {
 			count += 1;
 		}
 		for(; vp.first != vp.second; ++vp.first)
-                       	cost_task += workflows[i]->g[*vp.first].cost;
+			cost_task += workflows[i]->g[*vp.first].cost;
 	}
 	std::cout<<"average execution time of "<<count<<" jobs is "<<(ave_exeT/count)<<std::endl;
 	std::cout<<"deadline violation rate: "<<(violation/count)<<std::endl;

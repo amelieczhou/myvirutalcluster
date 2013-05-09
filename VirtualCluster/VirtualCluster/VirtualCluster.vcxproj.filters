@@ -59,7 +59,25 @@
     <ClCompile Include="AutoScaling.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="testMain.cpp">
+    <ClCompile Include="WorkflowScheduling.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="opMove.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="opSplit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="opMerge.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="opPromote.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="opDemote.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="opCoscheduling.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

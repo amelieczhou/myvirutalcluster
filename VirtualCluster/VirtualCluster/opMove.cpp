@@ -27,6 +27,10 @@ double opMove(vector<VM*>*  VM_queue, vector<Job*> jobs)
 		}
 		VM_queue_backup.push_back(vms);
 	}
+	double initialcost = 0;
+	for(int i=0; i<types; i++)
+		for(int j=0; j<VM_queue[i].size(); j++)
+			initialcost += priceOnDemand[i]*VM_queue[i][j]->life_time/60.0;
 
 	pair<vertex_iter, vertex_iter> vp;
 	////////////////////////////////////same type move//////////////////////////////////////////////////
@@ -65,7 +69,7 @@ double opMove(vector<VM*>*  VM_queue, vector<Job*> jobs)
 								double oldestTime = VM_queue[i][k]->assigned_tasks[0][in]->estTime[VM_queue[i][k]->assigned_tasks[0][in]->assigned_type];
 								VM_queue[i][k]->assigned_tasks[0][in]->start_time += moveafter;
 								VM_queue[i][k]->assigned_tasks[0][in]->estTime[VM_queue[i][k]->assigned_tasks[0][in]->assigned_type] = exetime;
-								deadlineok = time_flood(VM_queue[i][k]->assigned_tasks[0][in]);//if true, do the move; else timeflood again	
+								deadlineok = time_flood(jobs[VM_queue[i][k]->assigned_tasks[0][in]->job_id],VM_queue[i][k]->assigned_tasks[0][in]->name);//if true, do the move; else timeflood again	
 								VM_queue[i][k]->assigned_tasks[0][in]->estTime[VM_queue[i][k]->assigned_tasks[0][in]->assigned_type] = oldestTime;
 								if(!deadlineok) break;
 														
@@ -109,7 +113,7 @@ double opMove(vector<VM*>*  VM_queue, vector<Job*> jobs)
 									double oldestTime = VM_queue[i][j]->assigned_tasks[outiter][in]->estTime[VM_queue[i][j]->assigned_tasks[outiter][in]->assigned_type];
 									VM_queue[i][j]->assigned_tasks[outiter][in]->start_time += jmoveafter;
 									VM_queue[i][j]->assigned_tasks[outiter][in]->estTime[VM_queue[i][j]->assigned_tasks[outiter][in]->assigned_type] = exetime;
-									deadlineok = time_flood(VM_queue[i][j]->assigned_tasks[outiter][in]);//if true, do the move; else timeflood again	
+									deadlineok = time_flood(jobs[VM_queue[i][j]->assigned_tasks[outiter][in]->job_id],VM_queue[i][j]->assigned_tasks[outiter][in]->name);//if true, do the move; else timeflood again	
 									VM_queue[i][j]->assigned_tasks[outiter][in]->estTime[VM_queue[i][j]->assigned_tasks[outiter][in]->assigned_type] = oldestTime;
 									if(!deadlineok) break;									
 								}
@@ -196,7 +200,7 @@ double opMove(vector<VM*>*  VM_queue, vector<Job*> jobs)
 						for(int in=0; in<VM_queue[j][jk]->assigned_tasks[0].size(); in++){	
 							VM_queue[j][jk]->assigned_tasks[0][in]->assigned_type = i;
 							VM_queue[j][jk]->start_time += moveafter;	
-							deadlineok = time_flood(VM_queue[j][jk]->assigned_tasks[0][in]);
+							deadlineok = time_flood(jobs[VM_queue[j][jk]->assigned_tasks[0][in]->job_id],VM_queue[j][jk]->assigned_tasks[0][in]->name);
 							if(!deadlineok) break;
 
 							if(in<VM_queue[j][jk]->assigned_tasks[0].size()-1){
@@ -217,7 +221,7 @@ double opMove(vector<VM*>*  VM_queue, vector<Job*> jobs)
 								//check deadline
 								for(int in=0; in<VM_queue[j][jk]->assigned_tasks[0].size(); in++){											
 									VM_queue[j][jk]->assigned_tasks[0][in]->start_time += moveafter;
-									movedeadline = time_flood(VM_queue[j][jk]->assigned_tasks[0][in]);
+									movedeadline = time_flood(jobs[VM_queue[j][jk]->assigned_tasks[0][in]->job_id],VM_queue[j][jk]->assigned_tasks[0][in]->name);
 									if(!movedeadline) break;
 								}
 								if(movedeadline){
@@ -279,7 +283,7 @@ double opMove(vector<VM*>*  VM_queue, vector<Job*> jobs)
 								//check deadline
 								for(int in=0; in<VM_queue[i][ik]->assigned_tasks[0].size(); in++){											
 									VM_queue[i][ik]->assigned_tasks[0][in]->start_time += moveafter;
-									movedeadline = time_flood(VM_queue[i][ik]->assigned_tasks[0][in]);
+									movedeadline = time_flood(jobs[VM_queue[i][ik]->assigned_tasks[0][in]->job_id],VM_queue[i][ik]->assigned_tasks[0][in]->name);
 									if(!movedeadline) break;
 								}
 								if(movedeadline){
