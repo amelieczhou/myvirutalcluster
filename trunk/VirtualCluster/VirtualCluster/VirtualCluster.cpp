@@ -741,6 +741,10 @@ void VirtualCluster::Simulate_SA(Job testJob){
 	std::string fname = a + b + c;
 	char time[256];
 	infile.open(fname.c_str());
+	if(infile==NULL){
+		printf("cannot find input file!\n");
+		return;
+	}
 	infile.getline(time,256); //jump the lamda line
 	infile.getline(time,256); //jump the 0 line
 	//incomming jobs

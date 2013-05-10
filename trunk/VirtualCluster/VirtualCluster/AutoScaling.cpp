@@ -36,6 +36,10 @@ void AutoScaling::Simulate(Job testJob) {
 	std::string fname = a + b + c;
 	char time[256];
 	infile.open(fname.c_str());
+	if(infile==NULL){
+		printf("cannot find input file!\n");
+		return;
+	}
 	infile.getline(time,256); //jump the lamda line
 	infile.getline(time,256); //jump the 0 line
 	//incomming jobs
@@ -227,7 +231,7 @@ void AutoScaling::Simulate(Job testJob) {
 				}					
 			}
 		}
-	}while(t<max_t);//there is a task not finished
+	}while(t<max_t||condition);//there is a task not finished
 
 	for(int i=0; i<types; i++)	{
 		int size1 = VMTP[i].size();						
