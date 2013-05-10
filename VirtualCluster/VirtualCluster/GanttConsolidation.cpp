@@ -232,8 +232,8 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
 	double savethisround=0;
 	do{	
 		//sort according to the start time of each VM
-		for(int i=0; i<types; i++) 
-			std::sort(VM_queue[i].begin(), VM_queue[i].end(),vmfunction);
+		//for(int i=0; i<types; i++) 
+			//std::sort(VM_queue[i].begin(), VM_queue[i].end(),vmfunction);
 		
 		//start the operators 
 		//if this condition, do move or split
@@ -258,7 +258,7 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
 		//savemove = opMove(VM_queue,jobs);
 		//savepromote = opPromote(VM_queue,jobs);
 		//savedemote = opDemote(VM_queue,jobs);
-		savemerge = opMerge(VM_queue,jobs);
+		//savemerge = opMerge(VM_queue,jobs);
 		//the number of VMs saved by move
 		/*int num_vms_move = 0;
 		for(int i=0; i<types; i++)
@@ -276,6 +276,7 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
 		for(int i=0; i<types; i++)
 			for(int j=0; j<VM_queue[i].size(); j++)
 				iteratecost += priceOnDemand[i]*VM_queue[i][j]->life_time/60.0;
+				//iteratecost+= priceOnDemand[i]*(VM_queue[i][j]->end_time - VM_queue[i][j]->start_time)/60.0;
 
 		double costsaved = originalcost - iteratecost;
 		printf("cost saved in this iteration is: %4f\n", costsaved);
@@ -286,6 +287,7 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
 	for(int i=0; i<types; i++)
 		for(int j=0; j<VM_queue[i].size(); j++)
 			cost += priceOnDemand[i]*VM_queue[i][j]->life_time/60.0;
+			//cost+= priceOnDemand[i]*(VM_queue[i][j]->end_time - VM_queue[i][j]->start_time)/60.0;
 
 	/*vp = vertices(jobs[0]->g);
 	int numtasks = *vp.second - *vp.first -2;
@@ -320,7 +322,7 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
 
 	return cost;//result;
 }
-void GanttConsolidation::Simulate(Job testJob, int input)
+void GanttConsolidation::Simulate(Job testJob, int input, int period)
 {
 	std::vector<Job*> workflows; //continuous workflow
 	double arrival_time = 0;
@@ -336,8 +338,12 @@ void GanttConsolidation::Simulate(Job testJob, int input)
 	strlamda << lamda;
 	b = strlamda.str();
 	std::string fname = a + b + c;
-	char time[256];
 	infile.open(fname.c_str());
+	char time[256];
+	if(infile==NULL){
+		printf("cannot find input file!\n");
+		return;
+	}
 	infile.getline(time,256); //jump the lamda line
 	infile.getline(time,256); //jump the 0 line
 	//incomming jobs
@@ -354,7 +360,7 @@ void GanttConsolidation::Simulate(Job testJob, int input)
 
 	//start simulation
 	int pointer = 0;
-	int period = 60; //planning every an hour
+	//int period = 60; //planning every an hour
 	int threshold = 10; //when more than thrshold times no gain, stop the operations
 	int timer = 0;
 	double totalcost = 0;

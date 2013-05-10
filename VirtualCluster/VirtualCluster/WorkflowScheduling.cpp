@@ -397,11 +397,11 @@ int main(int argc, char** argv)
 	}
 	else if(strcmp(argv[1], "consolidation") == 0){
 		GanttConsolidation alg3;			
-		
+		int interval = atoi(argv[13]);
 		//simulation
-		if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,1);
-		else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,2);
-		else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,3);		
+		if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,1,interval);
+		else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,2,interval);
+		else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,3,interval);		
 	}
 
 	std::clock_t endtime = std::clock();
