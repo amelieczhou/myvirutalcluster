@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <ctime>
 //#include <boost/graph/topological_sort.hpp>
 
 extern double max_t;
@@ -143,7 +144,7 @@ void GanttConsolidation::Initialization(Job* testJob, int policy)
 	}
 }
 //jobs are currently waiting in the queue for planning
-double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
+double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer, bool rule)
 {
 	if(jobs.size() == 0){
 		/*pair<double,pair<double,double> > result;
@@ -245,6 +246,9 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
 		double demotecount = 0;
 		double movecount = 0;
 		double promotecount = 0;
+		double savesplit = 0;
+		double splitcount = 0;
+		
 		/*while(demotecount<10){
 			double save=opDemote(VM_queue,jobs);
 			savedemote += save;
@@ -259,6 +263,7 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
 		//savepromote = opPromote(VM_queue,jobs);
 		//savedemote = opDemote(VM_queue,jobs);
 		//savemerge = opMerge(VM_queue,jobs);
+		//savesplit = opSplit(VM_queue, jobs);
 		//the number of VMs saved by move
 		/*int num_vms_move = 0;
 		for(int i=0; i<types; i++)
@@ -267,8 +272,40 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
 		int num_vms_saved = num_vms - num_vms_move;*/
 		//printf("The overall number of VMs saved by move operation is %d\n",num_vms_saved);
 
-		
-		savethisround = savemove+savedemote+savepromote+savemerge;
+		if(rule){
+			//try the 5 operations with rule
+			savemove = opMove(VM_queue,jobs,true);
+			savepromote = opPromote(VM_queue,jobs,true);
+			savedemote = opDemote(VM_queue,jobs,true);
+			savemerge = opMerge(VM_queue,jobs,true);
+			savesplit = opSplit(VM_queue, jobs,true);
+
+			if(savemove>=savepromote && savemove>=savedemote && savemove>=savemerge && savemove>=savesplit)
+				savethisround = opMove(VM_queue,jobs,false);
+			else if(savepromote>=savemove && savepromote>=savedemote && savepromote>=savemerge && savepromote>=savesplit)
+				savethisround = opPromote(VM_queue,jobs,false);
+			else if(savedemote>=savemove && savedemote>=savepromote && savedemote>=savemerge && savedemote>=savesplit)
+				savethisround = opDemote(VM_queue,jobs,false);
+			else if(savemerge>=savemove && savemerge>=savepromote && savemerge>=savedemote && savemerge>=savesplit)
+				savethisround = opMerge(VM_queue,jobs,false);
+			else if(savesplit>=savemove && savesplit>=savepromote && savesplit>=savedemote && savesplit>=savemerge)
+				savethisround = opSplit(VM_queue,jobs,false);
+		} 
+		else{
+			//do the five operators randomly		
+			int select = (double)rand() / (RAND_MAX+1) * 5;
+			if(select==0)
+				savethisround = opMove(VM_queue,jobs,false);
+			else if(select==1)
+				savethisround = opPromote(VM_queue,jobs,false);
+			else if(select ==2)
+				savethisround = opDemote(VM_queue,jobs,false);
+			else if(select == 3)
+				savethisround = opMerge(VM_queue,jobs,false);
+			else if(select == 4)
+				savethisround = opSplit(VM_queue,jobs,false);
+		}
+		//savethisround = savemove+savedemote+savepromote+savemerge+savemove;
 		if(savethisround <= 0) count++;
 
 		//cost saved in this iteration
@@ -322,7 +359,7 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer)
 
 	return cost;//result;
 }
-void GanttConsolidation::Simulate(Job testJob, int input, int period)
+void GanttConsolidation::Simulate(Job testJob, int input, int period, bool rule)
 {
 	std::vector<Job*> workflows; //continuous workflow
 	double arrival_time = 0;
@@ -399,7 +436,9 @@ void GanttConsolidation::Simulate(Job testJob, int input, int period)
 			totalcost += cost.first;
 			violate += cost.second.first;
 			totaltime += cost.second.second;*/
-			double cost = Planner(jobs, timer);
+			/*unsigned seed = timer;
+			srand( (unsigned)time( NULL ) );*/
+			double cost = Planner(jobs, timer, rule);
 			totalcost += cost;
 		}
 		timer ++;

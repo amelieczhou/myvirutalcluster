@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "ConsolidateOperators.h"
 
-double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs)
+double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
 {
 	//Rule 1, promote can merge with left or right
 	bool dopromote = false;
@@ -63,10 +63,10 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs)
 						VM_queue[i][iter]->assigned_tasks[out][in]->assigned_type = j;
 						deadlineok = time_flood(jobs[VM_queue[i][iter]->assigned_tasks[out][in]->job_id],VM_queue[i][iter]->assigned_tasks[out][in]->name);
 						double newexetime = exetime*VM_queue[i][iter]->assigned_tasks[out][in]->estTime[j]/VM_queue[i][iter]->assigned_tasks[out][in]->estTime[i];
-						if(in>0)//for debuging only
-							printf("");
+						//if(in>0)//for debuging only
+						//	printf("");
 						if(!deadlineok) {
-							printf("promote violate deadline!\n");
+							//printf("promote violate deadline!\n");
 							break;
 						}
 					}
@@ -163,6 +163,22 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs)
 											deepcopy(VM_queue[t][s], VM_queue_state[t][s]);
 									continue;//break to the next out queue
 								}
+								if(checkcost){
+									vector<taskVertex*> tasks;
+									for(int taskiter=0; taskiter<numoftasks; taskiter++){
+										taskVertex* task = VM_queue[i][iter]->assigned_tasks[out].back();
+										VM_queue[i][iter]->assigned_tasks[out].pop_back();
+										tasks.push_back(task);										
+									}
+									VM_queue[j][k]->assigned_tasks.push_back(tasks);
+									for(int t=0; t<types; t++)
+										for(int s=0; s<VM_queue_backup[t].size(); s++)
+											//*VM_queue[t][s] = *VM_queue_state[t][s];
+											deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);
+									deepdelete(VM_queue_backup);
+									deepdelete(VM_queue_state);
+									return cost1-cost2;
+								}
 								VM_queue[j].push_back(VM_queue[i][iter]);
 								VM_queue[i].erase(VM_queue[i].begin()+iter);
 								//delete VM_queue[j][k];
@@ -190,32 +206,10 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs)
 									}
 								}
 								else{*/
-									for(int t=0; t<types; t++){
-										for(int s=0; s<VM_queue_backup[t].size(); s++){	
-											for(int out=0;out<VM_queue_backup[t][s]->assigned_tasks.size(); out++)
-												for(int in=0; in<VM_queue_backup[t][s]->assigned_tasks[out].size(); in++){
-													delete VM_queue_backup[t][s]->assigned_tasks[out][in];
-													VM_queue_backup[t][s]->assigned_tasks[out][in] = NULL;
-												}
-											delete VM_queue_backup[t][s];
-											VM_queue_backup[t][s] = NULL;
-										}
-										VM_queue_backup[t].clear();
-										for(int s=0; s<VM_queue_state[t].size(); s++){
-											for(int out=0;out<VM_queue_state[t][s]->assigned_tasks.size(); out++)
-												for(int in=0; in<VM_queue_state[t][s]->assigned_tasks[out].size(); in++){
-													delete VM_queue_state[t][s]->assigned_tasks[out][in];
-													VM_queue_state[t][s]->assigned_tasks[out][in] = NULL;
-												}
-											delete VM_queue_state[t][s];
-											VM_queue_state[t][s] = NULL;									
-										}	
-										VM_queue_state[t].clear();
-									}
-									VM_queue_backup.clear();
-									VM_queue_state.clear();
+									deepdelete(VM_queue_backup);
+									deepdelete(VM_queue_state);
 									printf("promote operation and move operation 2\n");
-									return costpromote;
+									return cost1-cost2;
 								//}
 							}else{ //
 								for(int t=0; t<types; t++)
@@ -227,22 +221,7 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs)
 						}//the out-th VM queue
 					}
 				}//the k-th type j task
-				for(int t=0; t<types; t++){
-					for(int s=0; s<VM_queue_backup[t].size(); s++)	{	
-						deepcopy(VM_queue[t][s],VM_queue_backup[t][s]);
-					}
-					for(int s=0; s<VM_queue_state[t].size(); s++){
-						for(int out=0; out<VM_queue_state[t][s]->assigned_tasks.size();out++)
-							for(int in=0; in<VM_queue_state[t][s]->assigned_tasks[out].size(); in++) {
-								delete VM_queue_state[t][s]->assigned_tasks[out][in];
-								VM_queue_state[t][s]->assigned_tasks[out][in] = NULL;
-							}
-						delete VM_queue_state[t][s];
-						VM_queue_state[t][s] = NULL;
-					}
-					VM_queue_state[t].clear();
-				}
-				VM_queue_state.clear();
+				deepdelete(VM_queue_state);
 			}//try to promote next iter task
 		}//promote to next type j
 	}//next VM queue
@@ -254,6 +233,6 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs)
 		for(int t=0; t<types; t++)
 			for(int s=0; s<VM_queue_backup[t].size(); s++)	
 				deepcopy(VM_queue[t][s],VM_queue_backup[t][s]);
-			
+	deepdelete(VM_queue_backup);
 	return 0;
 }

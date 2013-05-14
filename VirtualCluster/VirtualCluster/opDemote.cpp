@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "ConsolidateOperators.h"
 
-double opDemote(vector<VM*>* VM_queue, vector<Job*> jobs)
+double opDemote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
 {
 	bool dodemote = false;
 	double costdemote = 0;
@@ -104,8 +104,8 @@ double opDemote(vector<VM*>* VM_queue, vector<Job*> jobs)
 						}
 						//demote vm i to type j
 						int name= VM_queue[i][iter]->assigned_tasks[0][0]->name;//for debug only
-						if(VM_queue[i][iter]->assigned_tasks.size()>1 ||VM_queue[i][iter]->assigned_tasks[0].size()>1)//for debug only
-							printf("");
+						//if(VM_queue[i][iter]->assigned_tasks.size()>1 ||VM_queue[i][iter]->assigned_tasks[0].size()>1)//for debug only
+						//	printf("");
 						double newtime = VM_queue[i][iter]->end_time - VM_queue[i][iter]->start_time;
 						costdemote = demote(i, originaltime, j, newtime);
 						if(costdemote>1e-12){
@@ -129,6 +129,14 @@ double opDemote(vector<VM*>* VM_queue, vector<Job*> jobs)
 									for(int s=0; s<VM_queue_backup[t].size(); s++)	
 										deepcopy(VM_queue[t][s],VM_queue_state[t][s]);
 							else{ //
+									if(checkcost){
+										for(int t=0; t<types; t++)
+											for(int s=0; s<VM_queue_backup[t].size(); s++)	
+												deepcopy(VM_queue[t][s],VM_queue_backup[t][s]);
+										deepdelete(VM_queue_backup);
+										deepdelete(VM_queue_state);
+										return cost1-cost2;
+									}
 								//if(update){//new cost less than old cost
 									VM_queue[j].push_back(VM_queue[i][iter]);
 									VM_queue[i].erase(VM_queue[i].begin()+iter);
@@ -136,7 +144,7 @@ double opDemote(vector<VM*>* VM_queue, vector<Job*> jobs)
 									deepdelete(VM_queue_backup);
 									deepdelete(VM_queue_state);
 									printf("demote operation\n");
-									return costdemote;
+									return cost1-cost2;
 								}
 							}else{
 								for(int t=0; t<types; t++)
@@ -195,6 +203,22 @@ double opDemote(vector<VM*>* VM_queue, vector<Job*> jobs)
 												}
 											continue;//continue to the next out queue
 										}
+										if(checkcost){
+											vector<taskVertex*> tasks;
+											for(int taskiter=0; taskiter<numoftasks; taskiter++){
+												taskVertex* task = VM_queue[i][iter]->assigned_tasks[out].back();
+												VM_queue[i][iter]->assigned_tasks[out].pop_back();
+												tasks.push_back(task);
+											}
+											VM_queue[j][k]->assigned_tasks.push_back(tasks);
+											for(int t=0; t<types; t++)
+												for(int s=0; s<VM_queue_backup[t].size(); s++)	{
+													deepcopy(VM_queue[t][s],VM_queue_backup[t][s]);
+												}
+											deepdelete(VM_queue_backup);
+											deepdelete(VM_queue_state);
+											return cost1-cost2;
+										}
 										VM_queue[j].push_back(VM_queue[i][iter]);
 										VM_queue[i].erase(VM_queue[i].begin()+iter);
 										//delete VM_queue[j][k];
@@ -225,7 +249,7 @@ double opDemote(vector<VM*>* VM_queue, vector<Job*> jobs)
 											deepdelete(VM_queue_backup);
 											deepdelete(VM_queue_state);
 											printf("demote operation and move operation 2\n");
-											return costdemote;		
+											return cost1-cost2;		
 										//}
 									}else{
 										for(int t=0; t<types; t++)
@@ -250,8 +274,8 @@ double opDemote(vector<VM*>* VM_queue, vector<Job*> jobs)
 								deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);
 							}
 					}
-				}//capacity ok
-			}//next task to promote to j type
+				}//capacity ok					
+			}//next task to promote to j type			
 		}//next type j
 	}//next VM queue
 
@@ -264,9 +288,8 @@ double opDemote(vector<VM*>* VM_queue, vector<Job*> jobs)
 			for(int s=0; s<VM_queue_backup[t].size(); s++)	{	
 				deepcopy(VM_queue[t][s],VM_queue_backup[t][s]);
 			}
-		}
-		deepdelete(VM_queue_backup);
+		}		
 	}
-
+	deepdelete(VM_queue_backup);
 	return 0;
 }
