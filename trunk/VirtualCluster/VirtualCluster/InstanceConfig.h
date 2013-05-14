@@ -57,8 +57,20 @@ public:
 	//Job* job; //the task belong to job
 	int job_id;
 	//vector<taskVertex*> children;
+	//vector<double> break_time; //for split operation
+	double breaktime1, breaktime2;
+	taskVertex* virtualtask; //the next half after split
 
 	void instance_config(); //configuration for the prefer_type
+
+	taskVertex() {
+		assigned_type = prefer_type = mark = breaktime1 = breaktime2 = 0;
+		cost = start_time = end_time = sub_deadline = restTime = 0;
+		EST = LFT = 0;
+		readyCountDown = -1; //
+		status = not_ready;
+		virtualtask = NULL;
+	}
 };
 
 typedef adjacency_list<vecS, vecS, bidirectionalS, taskVertex, property<edge_weight_t, double> > Graph;

@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "ConsolidateOperators.h"
 
-double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs)
+double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost)
 {
 	double domerge = false;
 	double costmerge = 0;
@@ -102,26 +102,29 @@ double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs)
 										deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);
 								continue;//break to the next out queue
 							}else{
+								if(checkcost){
+									vector<taskVertex*> tasks;
+									for(int taskiter=0; taskiter<numoftasks; taskiter++){
+										taskVertex* task = VM_queue[i][k]->assigned_tasks[out].back();
+										VM_queue[i][k]->assigned_tasks[out].pop_back();
+										tasks.push_back(task);
+									}
+									VM_queue[i][j]->assigned_tasks.push_back(tasks);
+									for(int t=0; t<types; t++)
+										for(int s=0; s<VM_queue_backup[t].size(); s++)
+											//*VM_queue[t][s] = *VM_queue_state[t][s];
+											deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);
+									deepdelete(VM_queue_backup);
+									return cost1-cost2;
+								}
 								//VM_queue[j].push_back(VM_queue[i][iter]);
 								//VM_queue[i].erase(VM_queue[i].begin()+iter);
 								//delete VM_queue[j][k];
 								//VM_queue[j][k] = NULL;
 								VM_queue[i].erase(VM_queue[i].begin()+j);
-								for(int t=0; t<types; t++){
-									for(int s=0; s<VM_queue_backup[t].size(); s++){	
-										for(int out=0;out<VM_queue_backup[t][s]->assigned_tasks.size(); out++)
-											for(int in=0; in<VM_queue_backup[t][s]->assigned_tasks[out].size(); in++){
-												delete VM_queue_backup[t][s]->assigned_tasks[out][in];
-												VM_queue_backup[t][s]->assigned_tasks[out][in] = NULL;
-											}
-										delete VM_queue_backup[t][s];
-										VM_queue_backup[t][s] = NULL;
-									}
-									VM_queue_backup[t].clear();
-								}
-								VM_queue_backup.clear();
+								deepdelete(VM_queue_backup);
 								printf("merge operation\n");
-								return costmerge;
+								return cost1-cost2;
 							}
 						}else{
 							for(int t=0; t<types; t++){
@@ -135,5 +138,11 @@ double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs)
 			}//j-th vm
 		}//k-th vm
 	}
+	for(int t=0; t<types; t++){
+		for(int s=0; s<VM_queue_backup[t].size(); s++)	{
+			deepcopy(VM_queue[t][s],VM_queue_backup[t][s]);
+		}
+	}
+	deepdelete(VM_queue_backup);
 	return 0;
 }

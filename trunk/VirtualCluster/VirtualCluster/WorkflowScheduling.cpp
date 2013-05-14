@@ -40,12 +40,7 @@ int main(int argc, char** argv)
 		for(int i=0; i<depth+2; i++) //two dummy tasks
 		{
 			taskVertex tk;
-			tk.name = i;
-			tk.assigned_type = tk.prefer_type = tk.mark = 0;
-			tk.cost = tk.start_time = tk.end_time =tk.sub_deadline = tk.restTime = 0;
-			tk.EST = tk.LFT = 0;
-			tk.readyCountDown = -1; //
-			tk.status = not_ready;
+			tk.name = i;			
 			tk.estTime = new double[types];
 			//int rnd = (double)rand() / RAND_MAX * types; //[range_min, range_max)	
 			int rnd = rnds[i];
@@ -86,12 +81,7 @@ int main(int argc, char** argv)
 		for(int i=0; i<15+2; i++)
 		{
 			taskVertex tk;
-			tk.name = i;
-			tk.assigned_type = tk.prefer_type = tk.mark = 0;
-			tk.cost = tk.start_time = tk.end_time =tk.sub_deadline = tk.restTime = 0;
-			tk.EST = tk.LFT = 0;
-			tk.readyCountDown = -1; //
-			tk.status = not_ready;
+			tk.name = i;			
 			tk.estTime = new double[types];
 			//int rnd = (double)rand() / RAND_MAX * types; //[range_min, range_max)	
 			int rnd = rnds[i];
@@ -147,12 +137,7 @@ int main(int argc, char** argv)
 		for(int i=0; i<8; i++)
 		{
 			taskVertex tk;
-			tk.name = i;
-			tk.assigned_type = tk.prefer_type = tk.mark = 0;
-			tk.cost = tk.start_time = tk.end_time =tk.sub_deadline = tk.restTime = 0;
-			tk.EST = tk.LFT = 0;
-			tk.readyCountDown = -1; //
-			tk.status = not_ready;
+			tk.name = i;			
 			tk.estTime = new double[types];
 			//int rnd = (double)rand() / RAND_MAX * 4;
 			int rnd = rnds[i];
@@ -186,12 +171,7 @@ int main(int argc, char** argv)
 		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//22
 		for(int i=0; i<20+2; i++){
 			taskVertex tk;
-			tk.name = i;
-			tk.assigned_type = tk.prefer_type = tk.mark = 0;
-			tk.cost = tk.start_time = tk.end_time =tk.sub_deadline = tk.restTime = 0;
-			tk.EST = tk.LFT = 0;
-			tk.readyCountDown = -1; //
-			tk.status = not_ready;
+			tk.name = i;			
 			tk.estTime = new double[types];
 			//int rnd = (double)rand() / RAND_MAX * types;
 			int rnd = rnds[i];
@@ -238,12 +218,7 @@ int main(int argc, char** argv)
 		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//42
 		for(int i=0; i<40+2; i++){
 			taskVertex tk;
-			tk.name = i;
-			tk.assigned_type = tk.prefer_type = tk.mark = 0;
-			tk.cost = tk.start_time = tk.end_time =tk.sub_deadline = tk.restTime = 0;
-			tk.EST = tk.LFT = 0;
-			tk.readyCountDown = -1; //
-			tk.status = not_ready;
+			tk.name = i;			
 			tk.estTime = new double[types];
 			//int rnd = (double)rand() / RAND_MAX * types;
 			int rnd = rnds[i];
@@ -287,12 +262,7 @@ int main(int argc, char** argv)
 		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//22
 		for(int i=0; i<20+2; i++){
 			taskVertex tk;
-			tk.name = i;
-			tk.assigned_type = tk.prefer_type = tk.mark = 0;
-			tk.cost = tk.start_time = tk.end_time =tk.sub_deadline = tk.restTime = 0;
-			tk.EST = tk.LFT = 0;
-			tk.readyCountDown = -1; //
-			tk.status = not_ready;
+			tk.name = i;			
 			tk.estTime = new double[types];
 			//int rnd = (double)rand() / RAND_MAX * types;
 			int rnd = rnds[i];
@@ -333,11 +303,6 @@ int main(int argc, char** argv)
 		{
 			taskVertex tk;
 			tk.name = i;
-			tk.assigned_type = tk.prefer_type = tk.mark = 0;
-			tk.cost = tk.start_time = tk.end_time =tk.sub_deadline = tk.restTime = 0;
-			tk.EST = tk.LFT = 0;
-			tk.readyCountDown = -1; //
-			tk.status = not_ready;
 			tk.estTime = new double[types];
 			//int rnd = (double)rand() / RAND_MAX * 4;
 			int rnd = rnds[i];
@@ -398,10 +363,16 @@ int main(int argc, char** argv)
 	else if(strcmp(argv[1], "consolidation") == 0){
 		GanttConsolidation alg3;			
 		int interval = atoi(argv[13]);
+		bool rule;
+		if(strcmp(argv[14],"rule")==0)
+			rule = true;
+		else if(strcmp(argv[14],"random")==0)
+			rule = false;
+		else return 1;
 		//simulation
-		if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,1,interval);
-		else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,2,interval);
-		else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,3,interval);		
+		if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,1,interval,rule);
+		else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,2,interval,rule);
+		else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,3,interval,rule);		
 	}
 
 	std::clock_t endtime = std::clock();

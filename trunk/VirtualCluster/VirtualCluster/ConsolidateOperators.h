@@ -22,12 +22,12 @@ void promote_operation(vector<Job*> jobs, VM* vm, int type); //promote vm to typ
 void coschedule_operation(vector<Job*> jobs, VM* vm1, VM* vm2,double degradation); //coschedule vm2 to vm1
 void merge_operation(vector<Job*> jobs, VM* v1, VM* v2);
 //rules
-double opMove(vector<VM*>*  VMs, vector<Job*> jobs);//rules to do move operation, returns the cost saved by it
-double opSplit(vector<VM*>*  VMs, vector<Job*> jobs);
-double opMerge(vector<VM*>*  VMs, vector<Job*> jobs);
-double opPromote(vector<VM*>*  VMs, vector<Job*> jobs);
-double opDemote(vector<VM*>*  VMs, vector<Job*> jobs);
-double opCoschedule(vector<VM*>*  VMs, vector<Job*> jobs);
+double opMove(vector<VM*>*  VMs, vector<Job*> jobs, bool checkcost);//rules to do move operation, returns the cost saved by it
+double opSplit(vector<VM*>*  VMs, vector<Job*> jobs, bool checkcost);
+double opMerge(vector<VM*>*  VMs, vector<Job*> jobs, bool checkcost);
+double opPromote(vector<VM*>*  VMs, vector<Job*> jobs, bool checkcost);
+double opDemote(vector<VM*>*  VMs, vector<Job*> jobs, bool checkcost);
+double opCoschedule(vector<VM*>*  VMs, vector<Job*> jobs, bool checkcost);
 
 bool updateVMqueue(vector<VM*>* VMs);
 //void siteRecovery(vector<Job*> jobs, VM* vm);

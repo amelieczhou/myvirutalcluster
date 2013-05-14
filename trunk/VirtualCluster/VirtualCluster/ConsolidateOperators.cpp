@@ -112,10 +112,11 @@ void move_operation1(std::vector<Job*> jobs, VM* vm1, VM* vm2, int outiter, doub
 	for(int taskiter=0; taskiter < vm1->assigned_tasks[0].size(); taskiter++) {
 		taskVertex* task = vm1->assigned_tasks[0].back();
 		vm1->assigned_tasks[0].pop_back();
+		taskiter --;
 		//*task = *vm1->assigned_tasks[0][taskiter];
 		vm2->assigned_tasks[outiter].push_back(task);
 	}
-	sort(vm2->assigned_tasks[outiter].begin(),vm2->assigned_tasks[outiter].end(),taskfunction);
+	//sort(vm2->assigned_tasks[outiter].begin(),vm2->assigned_tasks[outiter].end(),taskfunction);
 	vector<taskVertex*>::iterator taskiterator = vm2->assigned_tasks[outiter].end() - 1;
 	if((*taskiterator)->end_time > vm2->end_time) vm2->end_time = (*taskiterator)->end_time;
 	vm2->life_time = std::ceil((vm2->end_time - vm2->start_time)/60.0 )*60.0;
@@ -128,8 +129,9 @@ void move_operation1(std::vector<Job*> jobs, VM* vm1, VM* vm2, int outiter, doub
 			vm1->assigned_tasks[out][in] = NULL;
 		}*/
 	vm1->assigned_tasks.clear();
-	delete vm1;
-	vm1 = NULL;	
+	/*delete vm1;
+	vm1 = NULL;*/	
+	vm1->life_time = vm1->start_time = vm1->end_time = vm1->resi_time =0;
 }
 void move_operation2(std::vector<Job*> jobs, VM* v1, VM* v2, int outiter){ //do not need to update v1
 	//printf("move operation 2\n");
@@ -178,10 +180,11 @@ void move_operation3(vector<Job*> jobs, VM* v1, int outiter, VM* v2, double move
 	for(int i=0; i<v2->assigned_tasks[0].size(); i++){
 		taskVertex* task = v2->assigned_tasks[0].back();
 		v2->assigned_tasks[0].pop_back();
+		i--;
 		//*task = *v2->assigned_tasks[0][i];
 		v1->assigned_tasks[outiter].push_back(task);
 	}
-	sort(v1->assigned_tasks[outiter].begin(),v1->assigned_tasks[outiter].end(),taskfunction);
+	//sort(v1->assigned_tasks[outiter].begin(),v1->assigned_tasks[outiter].end(),taskfunction);
 	vector<taskVertex*>::iterator enditerator = v1->assigned_tasks[outiter].end() -1;
 	if(v1->assigned_tasks[outiter][0]->start_time < v1->start_time) v1->start_time = v1->assigned_tasks[outiter][0]->start_time;
 	if((*enditerator)->end_time > v1->end_time) v1->end_time = (*enditerator)->end_time;
@@ -193,8 +196,9 @@ void move_operation3(vector<Job*> jobs, VM* v1, int outiter, VM* v2, double move
 			v2->assigned_tasks[out][in] = NULL;
 		}*/
 	v2->assigned_tasks.clear();
-	delete v2;
-	v2 = NULL;	
+	v2->life_time = v2->start_time = v2->end_time = v2->resi_time =0;
+	/*delete v2;
+	v2 = NULL;*/	
 }
 void demote_operation(std::vector<Job*> jobs, VM* vm, int j) {
 	//printf("demote operation\n");
