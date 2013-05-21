@@ -59,6 +59,8 @@ bool time_flood(Job* testJob, int task_no)
                     child->end_time = child->start_time + executetime;
 					if(child->end_time > child->sub_deadline)
 						return false;
+					if(child->end_time < child->start_time)
+						printf("");
                     std::vector<int>::iterator p = std::find(children_name.begin(),children_name.end(),child->name);
                     if(p == children_name.end()) {
                             children.push(child); 
@@ -66,7 +68,12 @@ bool time_flood(Job* testJob, int task_no)
                     }
             }
             children.pop();
-    }  
+    } 
+	pair<vertex_iter,vertex_iter> vp;
+	vp=vertices(testJob->g);
+	for(; vp.first!=vp.second; vp.first++)
+		if(testJob->g[*vp.first].end_time < testJob->g[*vp.first].start_time)
+			printf("");
 	return true;
 }
 //cost estimation of move operator, return the gain of the operation
@@ -109,16 +116,23 @@ void move_operation1(std::vector<Job*> jobs, VM* vm1, VM* vm2, int outiter, doub
 	//	if(jobs[vm1->assigned_tasks[0][taskiter]->job_id]->g[*(vp.second-1)].end_time > vm1->assigned_tasks[0][taskiter]->sub_deadline)
 	//		printf("deadline violated!---------------------------------------------------\n");*/
 	//}
-	for(int taskiter=0; taskiter < vm1->assigned_tasks[0].size(); taskiter++) {
+	//for(int taskiter=0; taskiter < vm1->assigned_tasks[0].size(); taskiter++) {
+	while(!vm1->assigned_tasks[0].empty())	{
 		taskVertex* task = vm1->assigned_tasks[0].back();
 		vm1->assigned_tasks[0].pop_back();
-		taskiter --;
+		//taskiter --;
 		//*task = *vm1->assigned_tasks[0][taskiter];
 		vm2->assigned_tasks[outiter].push_back(task);
 	}
 	//sort(vm2->assigned_tasks[outiter].begin(),vm2->assigned_tasks[outiter].end(),taskfunction);
-	vector<taskVertex*>::iterator taskiterator = vm2->assigned_tasks[outiter].end() - 1;
-	if((*taskiterator)->end_time > vm2->end_time) vm2->end_time = (*taskiterator)->end_time;
+	/*vector<taskVertex*>::iterator taskiterator = vm2->assigned_tasks[outiter].end() - 1;
+	if((*taskiterator)->end_time > vm2->end_time) vm2->end_time = (*taskiterator)->end_time;*/
+	for(int i=0; i<vm2->assigned_tasks[outiter].size(); i++)
+	{	if(vm2->assigned_tasks[outiter][i]->start_time<vm2->start_time )
+			vm2->start_time =vm2->assigned_tasks[outiter][i]->start_time;
+		if(vm2->assigned_tasks[outiter][i]->end_time >vm2->end_time)
+			vm2->end_time = vm2->assigned_tasks[outiter][i]->end_time;
+	}
 	vm2->life_time = std::ceil((vm2->end_time - vm2->start_time)/60.0 )*60.0;
 	vm2->resi_time = vm2->life_time - vm2->end_time + vm2->start_time;	
 	//vm1->start_time = vm1->end_time = vm1->resi_time = vm1->life_time = 0;
@@ -135,10 +149,11 @@ void move_operation1(std::vector<Job*> jobs, VM* vm1, VM* vm2, int outiter, doub
 }
 void move_operation2(std::vector<Job*> jobs, VM* v1, VM* v2, int outiter){ //do not need to update v1
 	//printf("move operation 2\n");
-	for(int taskiter=0; taskiter < v1->assigned_tasks[0].size(); taskiter++){
+	//for(int taskiter=0; taskiter < v1->assigned_tasks[0].size(); taskiter++){
+	while(!v1->assigned_tasks[0].empty()){
 		taskVertex* task = v1->assigned_tasks[0].back();
 		v1->assigned_tasks[0].pop_back();
-		taskiter--;
+		//taskiter--;
 		//*task = *v1->assigned_tasks[0][taskiter];
 		v2->assigned_tasks[outiter].push_back(task);
 	}
@@ -177,17 +192,24 @@ void move_operation3(vector<Job*> jobs, VM* v1, int outiter, VM* v2, double move
 	//		printf("deadline violated!---------------------------------------------------\n");*/
 	//}
 
-	for(int i=0; i<v2->assigned_tasks[0].size(); i++){
+	//for(int i=0; i<v2->assigned_tasks[0].size(); i++){
+	while(!v2->assigned_tasks[0].empty()){
 		taskVertex* task = v2->assigned_tasks[0].back();
 		v2->assigned_tasks[0].pop_back();
-		i--;
+	//	i--;
 		//*task = *v2->assigned_tasks[0][i];
 		v1->assigned_tasks[outiter].push_back(task);
 	}
 	//sort(v1->assigned_tasks[outiter].begin(),v1->assigned_tasks[outiter].end(),taskfunction);
-	vector<taskVertex*>::iterator enditerator = v1->assigned_tasks[outiter].end() -1;
+	/*vector<taskVertex*>::iterator enditerator = v1->assigned_tasks[outiter].end() -1;
 	if(v1->assigned_tasks[outiter][0]->start_time < v1->start_time) v1->start_time = v1->assigned_tasks[outiter][0]->start_time;
-	if((*enditerator)->end_time > v1->end_time) v1->end_time = (*enditerator)->end_time;
+	if((*enditerator)->end_time > v1->end_time) v1->end_time = (*enditerator)->end_time;*/
+	for(int i=0; i<v1->assigned_tasks[outiter].size(); i++)
+	{	if(v1->assigned_tasks[outiter][i]->start_time<v1->start_time )
+			v1->start_time =v1->assigned_tasks[outiter][i]->start_time;
+		if(v1->assigned_tasks[outiter][i]->end_time >v1->end_time)
+			v1->end_time = v1->assigned_tasks[outiter][i]->end_time;
+	}
 	v1->life_time = ceil((v1->end_time - v1->start_time)/60.0)*60.0;
 	v1->resi_time = v1->start_time + v1->life_time - v1->end_time;
 	/*for(int out=0; out<v2->assigned_tasks.size(); out++)
@@ -220,9 +242,12 @@ void demote_operation(std::vector<Job*> jobs, VM* vm, int j) {
 		//	if(jobs[vm->assigned_tasks[out][in]->job_id]->g[*(vp.second-1)].end_time > jobs[vm->assigned_tasks[out][in]->job_id]->deadline)
 		//		printf("deadline violated!---------------------------------------------------\n");
 		//}
-		sort(vm->assigned_tasks[out].begin(),vm->assigned_tasks[out].end(),taskfunction);
-		vector<taskVertex*>::iterator taskiterator = vm->assigned_tasks[out].end()-1;
-		if((*taskiterator)->end_time > lastend) lastend = (*taskiterator)->end_time;
+		//sort(vm->assigned_tasks[out].begin(),vm->assigned_tasks[out].end(),taskfunction);
+		//vector<taskVertex*>::iterator taskiterator = vm->assigned_tasks[out].end()-1;
+		//if((*taskiterator)->end_time > lastend) lastend = (*taskiterator)->end_time;
+		for(int in=0; in<vm->assigned_tasks[out].size();in++)
+			if(vm->assigned_tasks[out][in]->end_time > lastend)
+				lastend = vm->assigned_tasks[out][in]->end_time;
 	}
 	vm->end_time = lastend;
 	vm->life_time = std::ceil((vm->end_time - vm->start_time)/60.0 )*60.0;
@@ -247,9 +272,12 @@ void promote_operation(std::vector<Job*> jobs, VM* vm, int j) {
 		//	if(jobs[vm->assigned_tasks[out][in]->job_id]->g[*(vp.second-1)].end_time > jobs[vm->assigned_tasks[out][in]->job_id]->deadline)
 		//		printf("deadline violated!---------------------------------------------------\n");
 		//}
-		sort(vm->assigned_tasks[out].begin(),vm->assigned_tasks[out].end(),taskfunction);
+		/*sort(vm->assigned_tasks[out].begin(),vm->assigned_tasks[out].end(),taskfunction);
 		vector<taskVertex*>::iterator taskiterator = vm->assigned_tasks[out].end()-1;
-		if((*taskiterator)->end_time > lastend) lastend = (*taskiterator)->end_time;
+		if((*taskiterator)->end_time > lastend) lastend = (*taskiterator)->end_time;*/
+		for(int in=0; in<vm->assigned_tasks[out].size();in++)
+			if(vm->assigned_tasks[out][in]->end_time > lastend)
+				lastend = vm->assigned_tasks[out][in]->end_time;
 	}
 	vm->end_time = lastend;
 	vm->life_time = std::ceil((vm->end_time - vm->start_time)/60.0 )*60.0;
@@ -426,6 +454,8 @@ void deepcopy(VM* dest, VM* src){
 				*dest->assigned_tasks[out][in] = *src->assigned_tasks[out][in];
 				dest->assigned_tasks[out][in]->cost = 100000;//for test only
 				//dest->assigned_tasks[out][in]->cost = 0;
+				if(dest->assigned_tasks[out][in]->end_time < dest->assigned_tasks[out][in]->start_time)
+					printf("");
 			}
 	//}
 }

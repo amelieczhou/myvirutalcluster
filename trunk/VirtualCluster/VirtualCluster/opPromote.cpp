@@ -30,6 +30,8 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
 					taskVertex* task = new taskVertex();
 					*task = *VM_queue[i][j]->assigned_tasks[out][in];
 					tasks.push_back(task);
+					if(task->end_time < task->start_time)
+						printf("");
 				}
 				vm->assigned_tasks.push_back(tasks);				
 			}
@@ -104,6 +106,8 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
 								taskVertex* task = new taskVertex();
 								*task = *VM_queue[iiter][jiter]->assigned_tasks[out][in];
 								tasks.push_back(task);
+								if(task->start_time > task->end_time)
+									printf("");
 							}
 							vm->assigned_tasks.push_back(tasks);				
 						}
@@ -118,16 +122,24 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
 				for(int k=0; k<VM_queue[j].size(); k++){
 					if(VM_queue[j][k]->assigned_tasks.size() == 1){
 						for(int out=0; out<VM_queue[i][iter]->assigned_tasks.size(); out++){
-							int taskend = VM_queue[i][iter]->assigned_tasks[out].size()-1;
-							sort(VM_queue[i][iter]->assigned_tasks[out].begin(),VM_queue[i][iter]->assigned_tasks[out].end(),taskfunction);
-							//VMs[i] merge with the one after it or in front of it						
+							//int taskend = VM_queue[i][iter]->assigned_tasks[out].size()-1;
+							//sort(VM_queue[i][iter]->assigned_tasks[out].begin(),VM_queue[i][iter]->assigned_tasks[out].end(),taskfunction);
+							//VMs[i] merge with the one after it or in front of it	
+							double outendtime = 0;
+							double outstarttime = VM_queue[i][iter]->assigned_tasks[out][0]->start_time;
+							for(int in=0; in<VM_queue[i][iter]->assigned_tasks[out].size(); in++){
+								if(VM_queue[i][iter]->assigned_tasks[out][in]->end_time > outendtime)
+									outendtime = VM_queue[i][iter]->assigned_tasks[out][in]->end_time;
+								if(VM_queue[i][iter]->assigned_tasks[out][in]->start_time < outstarttime)
+									outstarttime = VM_queue[i][iter]->assigned_tasks[out][in]->start_time;// = outstarttime;
+							}
 							double t1= VM_queue[j][k]->end_time - VM_queue[j][k]->start_time;
-							double t2 = VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time - VM_queue[i][iter]->assigned_tasks[out][0]->start_time;
+							double t2 = outendtime - outstarttime; //VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time - VM_queue[i][iter]->assigned_tasks[out][0]->start_time;
 							double t3;
-							if(VM_queue[j][k]->start_time >= VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time)
-								t3 = VM_queue[j][k]->end_time -VM_queue[i][iter]->assigned_tasks[out][0]->start_time;
-							else if(VM_queue[j][k]->end_time <=VM_queue[i][iter]->assigned_tasks[out][0]->start_time)
-								t3 = VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time - VM_queue[j][k]->start_time;
+							if(VM_queue[j][k]->start_time >= outendtime)//VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time)
+								t3 = VM_queue[j][k]->end_time -outstarttime;//VM_queue[i][iter]->assigned_tasks[out][0]->start_time;
+							else if(VM_queue[j][k]->end_time <=outstarttime)//VM_queue[i][iter]->assigned_tasks[out][0]->start_time)
+								t3 = outendtime - VM_queue[j][k]->start_time;//VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time - VM_queue[j][k]->start_time;
 							else continue;//to the next VM queue
 							double costmove = move(j,t1,t2,t3);
 							costpromote += costmove;		
@@ -225,14 +237,10 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
 			}//try to promote next iter task
 		}//promote to next type j
 	}//next VM queue
-	double finalcost = 0;
-	for(int iiter=0; iiter<types; iiter++)
-		for(int jiter=0; jiter<VM_queue[iiter].size(); jiter++)
-			finalcost += priceOnDemand[VM_queue[iiter][jiter]->type]*VM_queue[iiter][jiter]->life_time/60.0;
-	if(finalcost>initialcost)
-		for(int t=0; t<types; t++)
-			for(int s=0; s<VM_queue_backup[t].size(); s++)	
-				deepcopy(VM_queue[t][s],VM_queue_backup[t][s]);
+
+	for(int t=0; t<types; t++)
+		for(int s=0; s<VM_queue_backup[t].size(); s++)	
+			deepcopy(VM_queue[t][s],VM_queue_backup[t][s]);
 	deepdelete(VM_queue_backup);
 	return 0;
 }
