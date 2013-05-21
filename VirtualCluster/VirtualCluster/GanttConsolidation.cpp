@@ -144,7 +144,7 @@ void GanttConsolidation::Initialization(Job* testJob, int policy)
 	}
 }
 //jobs are currently waiting in the queue for planning
-double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer, bool rule)
+double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer, bool rule, int threshold)
 {
 	if(jobs.size() == 0){
 		/*pair<double,pair<double,double> > result;
@@ -274,22 +274,133 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer, bool rule)
 
 		if(rule){
 			//try the 5 operations with rule
+			vector<Job*> jobs_backup;
+			for(int i=0; i<jobs.size(); i++)
+			{
+				Job* job=new Job(jobs[i]->g);
+				jobs_backup.push_back(job);
+			}
 			savemove = opMove(VM_queue,jobs,true);
+			for(int i=0; i<jobs.size(); i++)
+			{
+				vp = vertices(jobs[i]->g);	
+				for(; vp.first !=vp.second; vp.first++){
+					if(jobs[i]->g[*vp.first].name != jobs_backup[i]->g[*vp.first].name || jobs[i]->g[*vp.first].job_id != jobs_backup[i]->g[*vp.first].job_id)
+						printf("");
+					if(jobs[i]->g[*vp.first].end_time < jobs[i]->g[*vp.first].start_time)
+						printf("");
+				}
+			}
 			savepromote = opPromote(VM_queue,jobs,true);
+			for(int i=0; i<jobs.size(); i++)
+			{
+				vp = vertices(jobs[i]->g);	
+				for(; vp.first !=vp.second; vp.first++){
+					if(jobs[i]->g[*vp.first].name != jobs_backup[i]->g[*vp.first].name || jobs[i]->g[*vp.first].job_id != jobs_backup[i]->g[*vp.first].job_id)
+						printf("");
+					if(jobs[i]->g[*vp.first].end_time < jobs[i]->g[*vp.first].start_time)
+						printf("");
+				}
+			}
 			savedemote = opDemote(VM_queue,jobs,true);
+			for(int i=0; i<jobs.size(); i++)
+			{
+				vp = vertices(jobs[i]->g);	
+				for(; vp.first !=vp.second; vp.first++){
+					if(jobs[i]->g[*vp.first].name != jobs_backup[i]->g[*vp.first].name || jobs[i]->g[*vp.first].job_id != jobs_backup[i]->g[*vp.first].job_id)
+						printf("");
+					if(jobs[i]->g[*vp.first].end_time < jobs[i]->g[*vp.first].start_time)
+						printf("");
+				}
+			}
 			savemerge = opMerge(VM_queue,jobs,true);
+			for(int i=0; i<jobs.size(); i++)
+			{
+				vp = vertices(jobs[i]->g);	
+				for(; vp.first !=vp.second; vp.first++){
+					if(jobs[i]->g[*vp.first].name != jobs_backup[i]->g[*vp.first].name || jobs[i]->g[*vp.first].job_id != jobs_backup[i]->g[*vp.first].job_id)
+						printf("");
+					if(jobs[i]->g[*vp.first].end_time < jobs[i]->g[*vp.first].start_time)
+						printf("");
+				}
+			}
 			savesplit = opSplit(VM_queue, jobs,true);
+			for(int i=0; i<jobs.size(); i++)
+			{
+				vp = vertices(jobs[i]->g);	
+				for(; vp.first !=vp.second; vp.first++){
+					if(jobs[i]->g[*vp.first].name != jobs_backup[i]->g[*vp.first].name || jobs[i]->g[*vp.first].job_id != jobs_backup[i]->g[*vp.first].job_id)
+						printf("");
+					if(jobs[i]->g[*vp.first].end_time < jobs[i]->g[*vp.first].start_time)
+						printf("");
+				}
+			}
 
-			if(savemove>=savepromote && savemove>=savedemote && savemove>=savemerge && savemove>=savesplit)
+			if(savemove>=savepromote && savemove>=savedemote && savemove>=savemerge && savemove>=savesplit){
 				savethisround = opMove(VM_queue,jobs,false);
-			else if(savepromote>=savemove && savepromote>=savedemote && savepromote>=savemerge && savepromote>=savesplit)
+				for(int i=0; i<jobs.size(); i++)
+				{
+					vp = vertices(jobs[i]->g);	
+					for(; vp.first !=vp.second; vp.first++){
+						if(jobs[i]->g[*vp.first].name != jobs_backup[i]->g[*vp.first].name || jobs[i]->g[*vp.first].job_id != jobs_backup[i]->g[*vp.first].job_id)
+							printf("");
+						if(jobs[i]->g[*vp.first].end_time < jobs[i]->g[*vp.first].start_time)
+							printf("");
+					}
+				}
+			}
+			else if(savepromote>=savemove && savepromote>=savedemote && savepromote>=savemerge && savepromote>=savesplit){
 				savethisround = opPromote(VM_queue,jobs,false);
-			else if(savedemote>=savemove && savedemote>=savepromote && savedemote>=savemerge && savedemote>=savesplit)
+				for(int i=0; i<jobs.size(); i++)
+				{
+					vp = vertices(jobs[i]->g);	
+					for(; vp.first !=vp.second; vp.first++){
+						if(jobs[i]->g[*vp.first].name != jobs_backup[i]->g[*vp.first].name || jobs[i]->g[*vp.first].job_id != jobs_backup[i]->g[*vp.first].job_id)
+							printf("");
+						if(jobs[i]->g[*vp.first].end_time < jobs[i]->g[*vp.first].start_time)
+							printf("");
+					}
+				}
+			}
+			else if(savedemote>=savemove && savedemote>=savepromote && savedemote>=savemerge && savedemote>=savesplit){
 				savethisround = opDemote(VM_queue,jobs,false);
-			else if(savemerge>=savemove && savemerge>=savepromote && savemerge>=savedemote && savemerge>=savesplit)
+				for(int i=0; i<jobs.size(); i++)
+				{
+					vp = vertices(jobs[i]->g);	
+					for(; vp.first !=vp.second; vp.first++){
+						if(jobs[i]->g[*vp.first].name != jobs_backup[i]->g[*vp.first].name || jobs[i]->g[*vp.first].job_id != jobs_backup[i]->g[*vp.first].job_id)
+							printf("");
+						if(jobs[i]->g[*vp.first].end_time < jobs[i]->g[*vp.first].start_time)
+							printf("");
+					}
+				}
+			}
+			else if(savemerge>=savemove && savemerge>=savepromote && savemerge>=savedemote && savemerge>=savesplit){
 				savethisround = opMerge(VM_queue,jobs,false);
-			else if(savesplit>=savemove && savesplit>=savepromote && savesplit>=savedemote && savesplit>=savemerge)
+				for(int i=0; i<jobs.size(); i++)
+				{
+					vp = vertices(jobs[i]->g);	
+					for(; vp.first !=vp.second; vp.first++){
+						if(jobs[i]->g[*vp.first].name != jobs_backup[i]->g[*vp.first].name || jobs[i]->g[*vp.first].job_id != jobs_backup[i]->g[*vp.first].job_id)
+							printf("");
+						if(jobs[i]->g[*vp.first].end_time < jobs[i]->g[*vp.first].start_time)
+							printf("");
+					}
+				}
+			}
+			else if(savesplit>=savemove && savesplit>=savepromote && savesplit>=savedemote && savesplit>=savemerge){
 				savethisround = opSplit(VM_queue,jobs,false);
+				for(int i=0; i<jobs.size(); i++)
+				{
+					vp = vertices(jobs[i]->g);	
+					for(; vp.first !=vp.second; vp.first++){
+						if(jobs[i]->g[*vp.first].name != jobs_backup[i]->g[*vp.first].name || jobs[i]->g[*vp.first].job_id != jobs_backup[i]->g[*vp.first].job_id)
+							printf("");
+						if(jobs[i]->g[*vp.first].end_time < jobs[i]->g[*vp.first].start_time)
+							printf("");
+					}
+				}
+			}
 		} 
 		else{
 			//do the five operators randomly		
@@ -312,15 +423,15 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer, bool rule)
 		double iteratecost = 0;
 		for(int i=0; i<types; i++)
 			for(int j=0; j<VM_queue[i].size(); j++)
-				iteratecost += priceOnDemand[i]*VM_queue[i][j]->life_time/60.0;
+				iteratecost += priceOnDemand[VM_queue[i][j]->type]*VM_queue[i][j]->life_time/60.0;
 				//iteratecost+= priceOnDemand[i]*(VM_queue[i][j]->end_time - VM_queue[i][j]->start_time)/60.0;
 
 		double costsaved = originalcost - iteratecost;
-		printf("cost saved in this iteration is: %4f\n", costsaved);
+		printf("cost saved in this iteration is: %4f\n", savethisround);
 		if(costsaved < 0)
 			printf("cost < 0, stop here\n");
 		originalcost = iteratecost;
-	}while(count<2);//threshold);
+	}while(count<threshold);
 	for(int i=0; i<types; i++)
 		for(int j=0; j<VM_queue[i].size(); j++)
 			cost += priceOnDemand[i]*VM_queue[i][j]->life_time/60.0;
@@ -359,7 +470,7 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer, bool rule)
 
 	return cost;//result;
 }
-void GanttConsolidation::Simulate(Job testJob, int input, int period, bool rule)
+void GanttConsolidation::Simulate(Job testJob, int input, int period, bool rule, int threshold)
 {
 	std::vector<Job*> workflows; //continuous workflow
 	double arrival_time = 0;
@@ -398,7 +509,134 @@ void GanttConsolidation::Simulate(Job testJob, int input, int period, bool rule)
 	//start simulation
 	int pointer = 0;
 	//int period = 60; //planning every an hour
-	int threshold = 10; //when more than thrshold times no gain, stop the operations
+	//int threshold = 10; //when more than thrshold times no gain, stop the operations
+	int timer = 0;
+	double totalcost = 0;
+	int violate = 0;
+	double totaltime = 0;
+	while(timer < max_t) {
+		std::vector<Job*> jobs;
+		//pop all jobs waiting and start planning
+		if(timer%period == 0) {
+			for(int i=pointer; i<workflows.size(); i++) {
+				if(workflows[i]->arrival_time < timer)
+					jobs.push_back(workflows[i]);
+				else {pointer = i; break;}
+			}
+			for(int i=0; i<jobs.size(); i++){
+				jobs[i]->deadline -= timer;
+				Initialization(jobs[i],input);
+				jobs[i]->deadline += timer;
+				pair<vertex_iter,vertex_iter> vp;
+				vp=vertices(jobs[i]->g);
+				for(; vp.first!=vp.second; vp.first++)
+					if(jobs[i]->g[*vp.first].end_time < jobs[i]->g[*vp.first].start_time)
+						printf("");
+			}
+					
+			//for tasks to refer to the job they belong to 
+			for(int i=0; i<jobs.size(); i++) {
+				jobs[i]->name = i;
+				std::pair<vertex_iter, vertex_iter> vp = vertices(jobs[i]->g);
+				for(; vp.first != vp.second; ++vp.first) {
+					jobs[i]->g[*vp.first].job_id = i;
+					//all jobs in the queue start at the same time when it's later than their arrival time
+					jobs[i]->g[*vp.first].start_time += timer; //jobs[i]->arrival_time;
+					jobs[i]->g[*vp.first].end_time += timer; //jobs[i]->arrival_time;
+					jobs[i]->g[*vp.first].sub_deadline = jobs[i]->deadline;
+				}
+			}
+			printf("current time is: %d\n", timer);
+
+			/*pair<double, pair<double,double> >cost = Planner(jobs, timer);
+			totalcost += cost.first;
+			violate += cost.second.first;
+			totaltime += cost.second.second;*/
+			/*unsigned seed = timer;
+			srand( (unsigned)time( NULL ) );*/
+			double cost = Planner(jobs, timer, rule, threshold);
+			totalcost += cost;
+		}
+		timer ++;
+	}
+	//the end of simulation
+	//calculate the deadline violation rate and average execution time
+	
+	for(int i=0; i<workflows.size(); i++) {
+		std::pair<vertex_iter, vertex_iter> vp;
+		vp = vertices(workflows[i]->g);
+		int vend = *(vp.second -1);
+		in_edge_iterator in_i, in_end;
+		edge_descriptor e;
+		double endtime=0;
+		for (boost::tie(in_i, in_end) = in_edges(vend, workflows[i]->g); in_i != in_end; ++in_i) 
+		{
+			e = *in_i;
+			Vertex src = source(e, workflows[i]->g);					
+			if(workflows[i]->g[src].end_time > endtime)
+			{
+				endtime = workflows[i]->g[src].end_time;
+			}
+		}
+		workflows[i]->g[vend].end_time = workflows[i]->g[vend].start_time = endtime;
+		if(workflows[i]->g[vend].end_time > workflows[i]->deadline)
+			violate += 1;
+		totaltime += (workflows[i]->g[vend].end_time - workflows[i]->g[0].start_time); //workflows[i]->arrival_time);
+	}
+	double averagetime = (double)totaltime/workflows.size();
+	double violate_rate = (double)violate/workflows.size();
+	printf("deadline violation rate is: %4f\n",violate_rate);
+	printf("total cost is: %4f\n",totalcost);
+	printf("average execution time is: %4f\n",averagetime);
+}
+void GanttConsolidation::Simulate(Job testJob, Job testJob1, int input, int period, bool rule, int threshold)
+{
+	std::vector<Job*> workflows; //continuous workflow
+	double arrival_time = 0;
+	Job* job = new Job(pipeline, deadline, lamda);
+	Job* job1 = new Job(pipeline, deadline, lamda);
+	job->type = testJob.type;
+	job1->type = testJob1.type;
+	job->g = testJob.g;
+	job1->g = testJob1.g;
+	job->arrival_time = job1->arrival_time = 0;
+	workflows.push_back(job);
+	workflows.push_back(job1);
+	double t = 0; bool condition = false;
+	double moneycost = 0;
+	std::ifstream infile;
+	std::string a = "arrivaltime_integer_", b, c = ".txt";
+	std::ostringstream strlamda;
+	strlamda << lamda;
+	b = strlamda.str();
+	std::string fname = a + b + c;
+	infile.open(fname.c_str());
+	char time[256];
+	if(infile==NULL){
+		printf("cannot find input file!\n");
+		return;
+	}
+	infile.getline(time,256); //jump the lamda line
+	infile.getline(time,256); //jump the 0 line
+	//incomming jobs
+	while(arrival_time < max_t){
+		infile.getline(time,256);
+		arrival_time = atof(time);
+
+		Job* job = new Job(pipeline,deadline+arrival_time,lamda);
+		Job* job1 = new Job(pipeline,deadline+arrival_time,lamda);
+		job->g = testJob.g; job->type = testJob.type;
+		job1->g = testJob1.g; job1->type = testJob1.type;
+		job->arrival_time = job1->arrival_time = arrival_time;
+		//std::pair<vertex_iter, vertex_iter> vp = vertices(job->g);
+		workflows.push_back(job);
+		workflows.push_back(job1);
+	}
+
+	//start simulation
+	int pointer = 0;
+	//int period = 60; //planning every an hour
+	//int threshold = 10; //when more than thrshold times no gain, stop the operations
 	int timer = 0;
 	double totalcost = 0;
 	int violate = 0;
@@ -438,7 +676,7 @@ void GanttConsolidation::Simulate(Job testJob, int input, int period, bool rule)
 			totaltime += cost.second.second;*/
 			/*unsigned seed = timer;
 			srand( (unsigned)time( NULL ) );*/
-			double cost = Planner(jobs, timer, rule);
+			double cost = Planner(jobs, timer, rule, threshold);
 			totalcost += cost;
 		}
 		timer ++;

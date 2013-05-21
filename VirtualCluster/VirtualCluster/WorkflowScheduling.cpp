@@ -31,7 +31,8 @@ int main(int argc, char** argv)
 
 	//organize the inputs: workflows, VMs, user defined parameters	
 	Job testJob(pipeline,deadline,lamda);
-
+	Job testJob1(pipeline,deadline,lamda);
+			
 	if(strcmp(argv[2], "pipeline") == 0)
 	{
 		testJob.type = pipeline;
@@ -321,15 +322,105 @@ int main(int argc, char** argv)
 		add_edge(0,1,testJob.g);
 		add_edge(1,2,testJob.g);
 	}
-	
+	else if(strcmp(argv[2],"Ligo+Montage")==0){
+		testJob.type = Ligo;
+		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//42
+		for(int i=0; i<40+2; i++){
+			taskVertex tk;
+			tk.name = i;			
+			tk.estTime = new double[types];
+			//int rnd = (double)rand() / RAND_MAX * types;
+			int rnd = rnds[i];
+			tk.type = rnd;
+			if(i == 0 || i == 41) //two dummy tasks
+			{
+				for(int j=0; j<types; j++)
+					tk.estTime[j] = 0;
+			}
+			else{
+				for(int j=0; j<types; j++)
+					tk.estTime[j] = Times[rnd][j];
+			}
+			add_vertex(tk, testJob.g);
+		}
+		for(int i = 1; i<10; i++) //for the dummy entry node
+			add_edge(0,i,testJob.g);
+		add_edge(39,41,testJob.g); //for the dummy exit node
+		add_edge(40,41,testJob.g);
+
+		for(int i =1; i<10; i++) {
+			add_edge(i, i+9, testJob.g); 
+			add_edge(i+20, i+29, testJob.g);
+		}
+		for(int i=10; i<15; i++) {
+			add_edge(i,19,testJob.g);
+			add_edge(i+20,39,testJob.g);
+		}
+		for(int i=15; i<19; i++) {
+			add_edge(i,20,testJob.g);
+			add_edge(i+20, 40, testJob.g);
+		}
+		for(int i=21; i<26; i++)
+			add_edge(19, i, testJob.g);
+		for(int i=26; i<30; i++)
+			add_edge(20,i,testJob.g);
+
+		testJob1.type = Montage;
+		int rrnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//22
+		for(int i=0; i<20+2; i++){
+			taskVertex tk;
+			tk.name = i;			
+			tk.estTime = new double[types];
+			//int rnd = (double)rand() / RAND_MAX * types;
+			int rnd = rrnds[i];
+			tk.type = rnd;
+			if(i == 0 || i == 21) //two dummy tasks
+			{
+				for(int j=0; j<types; j++)
+					tk.estTime[j] = 0;
+			}
+			else{
+				for(int j=0; j<types; j++)
+					tk.estTime[j] = Times[rnd][j];
+			}
+			add_vertex(tk, testJob1.g);
+		}
+		//add edges to the graph
+		int l1[4] = {1,2,3,4};
+		int l2[6] = {5,6,7,8,9,10};
+		int l3[4] = {13,14,15,16};
+		for(int i=0; i<4; i++) //for the dummy entry node
+			add_edge(0,l1[i],testJob1.g);
+		add_edge(20,21,testJob1.g); //for the exit dummy node
+		for(int i=0; i<4; i++) {
+			add_edge(l1[i],l3[i],testJob1.g);
+			add_edge(l1[i],l2[i],testJob1.g);
+			add_edge(l1[i],l2[i]+1,testJob1.g);
+		}
+		add_edge(4,10,testJob1.g);
+		add_edge(2,5,testJob1.g);
+		add_edge(2,9,testJob1.g);
+		for(int i=0; i<6; i++)
+			add_edge(l2[i],11,testJob1.g);
+		add_edge(11,12,testJob1.g);
+		for(int i=0; i<4; i++) {
+			add_edge(12,l3[i],testJob1.g);
+			add_edge(l3[i],17,testJob1.g);
+		}
+		add_edge(17,18,testJob1.g);
+		add_edge(18,19,testJob1.g);
+		add_edge(19,20,testJob1.g);
+	}
 	//deadline assignment for each class of workflows
 	//initially assign according to the minimum execution time
-	std::pair<vertex_iter, vertex_iter> vp; 
+	std::pair<vertex_iter, vertex_iter> vp, vvp;
 	vp = vertices(testJob.g);
+	if(strcmp(argv[2],"Ligo+Montage")==0)
+		vvp = vertices(testJob1.g);
+	
 	std::clock_t starttime = std::clock();
 	if(strcmp(argv[1], "virtualcluster") == 0 || strcmp(argv[1], "autoscaling") == 0) {
-		for(; vp.first!=vp.second; ++vp.first) //edge weight for communication cost
-		{
+		for(; vp.first!=vp.second; ++vp.first) {//edge weight for communication cost		
 			Vertex v1 = *vp.first;
 			testJob.g[v1].prefer_type = types-1;
 		}
@@ -340,6 +431,18 @@ int main(int argc, char** argv)
 		vp = vertices(testJob.g);
 		for(; vp.first != vp.second; ++vp.first)
 			testJob.g[*vp.first].instance_config();
+
+		if(strcmp(argv[2],"Ligo+Montage")==0){
+			for(; vvp.first != vvp.second; ++vvp.first)	{
+				Vertex v1 = *vvp.first;
+				testJob1.g[v1].prefer_type = types-1;
+			}
+			testJob1.deadline_assign();
+
+			vvp = vertices(testJob1.g);
+			for(; vvp.first!=vvp.second; ++vvp.first)
+				testJob1.g[*vvp.first].instance_config();
+		}
 	}
 	
 	if(strcmp(argv[1], "virtualcluster") == 0) {
@@ -348,6 +451,7 @@ int main(int argc, char** argv)
 		alg1.Simulate_SA(testJob);
 	}
 	else if(strcmp(argv[1], "autoscaling") == 0){
+		
 		//remove the dummy tasks which are added for deadline assign
 		vertex_iter vi, vi_end, next;
 		boost::tie(vi, vi_end) = vertices(testJob.g);
@@ -356,9 +460,22 @@ int main(int argc, char** argv)
 		boost::tie(vi, vi_end) = vertices(testJob.g);
 		clear_vertex(*(--vi_end),testJob.g);
 		remove_vertex(*(vi_end),testJob.g);
+		
+		if(strcmp(argv[2],"Ligo+Montage")==0){
+			vertex_iter vi, vi_end, next;
+			boost::tie(vi, vi_end) = vertices(testJob1.g);
+			clear_vertex(*vi,testJob1.g);
+			remove_vertex(*vi,testJob1.g);
+			boost::tie(vi, vi_end) = vertices(testJob1.g);
+			clear_vertex(*(--vi_end),testJob1.g);
+			remove_vertex(*(vi_end),testJob1.g);
 
-		AutoScaling alg2;
-		alg2.Simulate(testJob);
+			AutoScaling alg2;
+			alg2.Simulate(testJob,testJob1);
+		}else{
+			AutoScaling alg2;
+			alg2.Simulate(testJob);
+		}
 	}
 	else if(strcmp(argv[1], "consolidation") == 0){
 		GanttConsolidation alg3;			
@@ -369,10 +486,18 @@ int main(int argc, char** argv)
 		else if(strcmp(argv[14],"random")==0)
 			rule = false;
 		else return 1;
-		//simulation
-		if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,1,interval,rule);
-		else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,2,interval,rule);
-		else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,3,interval,rule);		
+		int threshold = atoi(argv[15]);
+		if(strcmp(argv[2],"Ligo+Montage")==0){
+			//simulation
+			if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,testJob1,1,interval,rule,threshold);
+			else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,testJob1,2,interval,rule,threshold);
+			else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,testJob1,3,interval,rule,threshold);
+		}else{
+			//simulation
+			if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,1,interval,rule,threshold);
+			else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,2,interval,rule,threshold);
+			else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,3,interval,rule,threshold);		
+		}
 	}
 
 	std::clock_t endtime = std::clock();

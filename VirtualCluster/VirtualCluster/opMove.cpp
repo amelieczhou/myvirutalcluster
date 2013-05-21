@@ -212,7 +212,8 @@ double opMove(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost)
 									}
 								continue;
 							}								
-							else{ //move vm j to the end of vm k do not violdate deadline							
+							else{ //move vm j to the end of vm k do not violdate deadline
+								updateVMqueue(VM_queue);
 								double t1 = endtime - starttime;
 								double t2 = VM_queue[i][k]->life_time - VM_queue[i][k]->resi_time;
 								double t3 = endtime + moveafter - VM_queue[i][k]->start_time;
@@ -318,6 +319,7 @@ double opMove(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost)
 								}
 								continue;//continue to the next jk vm
 						}else{
+							updateVMqueue(VM_queue);
 							bool movedeadline = true;
 							//then check move violate deadline or not
 							//if(VM_queue[j][jk]->start_time>=VM_queue[i][ik]->start_time){
@@ -441,6 +443,7 @@ double opMove(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost)
 										}
 									continue;
 								}else{
+									updateVMqueue(VM_queue);
 									//do the demote or promote
 									//do the demote
 									double newtime = VM_queue[j][jk]->end_time - VM_queue[j][jk]->start_time;

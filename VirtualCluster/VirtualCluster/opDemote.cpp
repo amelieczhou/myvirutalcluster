@@ -157,16 +157,24 @@ double opDemote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
 						for(int k=0; k<VM_queue[j].size(); k++){
 							if(VM_queue[j][k]->assigned_tasks.size()==1) {
 								for(int out=0; out<VM_queue[i][iter]->assigned_tasks.size(); out++){
-									int taskend = VM_queue[i][iter]->assigned_tasks[out].size() - 1;
-									sort(VM_queue[i][iter]->assigned_tasks[out].begin(),VM_queue[i][iter]->assigned_tasks[out].end(),taskfunction);
+									//int taskend = VM_queue[i][iter]->assigned_tasks[out].size() - 1;
+									//sort(VM_queue[i][iter]->assigned_tasks[out].begin(),VM_queue[i][iter]->assigned_tasks[out].end(),taskfunction);
 									//merge with the one after it or in front of it									
-									double t1 = VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time - VM_queue[i][iter]->assigned_tasks[out][0]->start_time;
+									double outendtime = 0;
+									double outstarttime = VM_queue[i][iter]->assigned_tasks[out][0]->start_time;
+									for(int in=0; in<VM_queue[i][iter]->assigned_tasks[out].size(); in++){
+										if(VM_queue[i][iter]->assigned_tasks[out][in]->end_time > outendtime)
+											outendtime = VM_queue[i][iter]->assigned_tasks[out][in]->end_time;
+										if(VM_queue[i][iter]->assigned_tasks[out][in]->start_time < outstarttime)
+											outstarttime = VM_queue[i][iter]->assigned_tasks[out][in]->start_time;// = outstarttime;
+									}
+									double t1 = outendtime - outstarttime; //VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time - VM_queue[i][iter]->assigned_tasks[out][0]->start_time;
 									double t2 = VM_queue[j][k]->life_time - VM_queue[j][k]->resi_time;
 									double t3;
-									if(VM_queue[j][k]->start_time >= VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time)
-										t3 = VM_queue[j][k]->end_time - VM_queue[i][iter]->assigned_tasks[out][0]->start_time;
-									else if(VM_queue[j][k]->end_time <=VM_queue[i][iter]->assigned_tasks[out][0]->start_time)
-										t3 = VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time - VM_queue[j][k]->start_time;
+									if(VM_queue[j][k]->start_time >= outendtime)//VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time)
+										t3 = VM_queue[j][k]->end_time - outstarttime;//VM_queue[i][iter]->assigned_tasks[out][0]->start_time;
+									else if(VM_queue[j][k]->end_time <=outstarttime)//VM_queue[i][iter]->assigned_tasks[out][0]->start_time)
+										t3 = outendtime - VM_queue[j][k]->start_time;//VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time - VM_queue[j][k]->start_time;
 									else{ continue;}//continue to the next out queue
 									//move VM k to the end/head of the out-th queue of VM i
 									double costmove = move(j,t1,t2,t3);
@@ -279,17 +287,13 @@ double opDemote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
 		}//next type j
 	}//next VM queue
 
-	double finalcost = 0;
-	for(int i=0; i<types; i++)
-		for(int j=0; j<VM_queue[i].size(); j++)
-			finalcost += priceOnDemand[VM_queue[i][j]->type]*VM_queue[i][j]->life_time/60.0;
-	if(finalcost>=initialcost){
-		for(int t=0; t<types; t++){
-			for(int s=0; s<VM_queue_backup[t].size(); s++)	{	
-				deepcopy(VM_queue[t][s],VM_queue_backup[t][s]);
-			}
-		}		
-	}
+	
+	for(int t=0; t<types; t++){
+		for(int s=0; s<VM_queue_backup[t].size(); s++)	{	
+			deepcopy(VM_queue[t][s],VM_queue_backup[t][s]);
+		}
+	}		
+	
 	deepdelete(VM_queue_backup);
 	return 0;
 }
