@@ -11,8 +11,10 @@ public:
 
 class AutoScaling {
 public:
-	void Simulate(Job job);
-	void Simulate(Job job, Job job1);
+	void Initialization(Job* job);
+	void Initialization(Job* job, Job* job1);
+	void Simulate(Job job, bool time);
+	void Simulate(Job job, Job job1, bool time);
 };
 
 enum Integer_Alg {
@@ -22,12 +24,12 @@ enum Integer_Alg {
 
 class GanttConsolidation {
 public:
-	void Initialization(Job* job, int in); //in=1, best-fit; in=2, worst-fit; in=3, most-efficient
-	void Simulate(Job job, int in, int interval,bool rule,int threshold);//in=1, best-fit; in=2, worst-fit; in=3, most-efficient
-	void Simulate(Job job, Job job1, int in, int inverval, bool rule, int threshold);
+	void Initialization(Job* job, int in, bool timeorcost); //in=1, best-fit; in=2, worst-fit; in=3, most-efficient
+	void Simulate(Job job, int in, int interval,bool rule,bool estimate,bool time);//in=1, best-fit; in=2, worst-fit; in=3, most-efficient
+	void Simulate(Job job, Job job1, int in, int inverval, bool rule, bool estimate,bool time);
 	//planner is invoked every 15mins, jobs are currently in the queue
 	//returns the cost, average time and time violation of such planning
 	//planning the jobs at timer
 	//pair<double, pair<double,double> > Planner(vector<Job*> jobs, int timer); 
-	double Planner(vector<Job*> jobs, int timer, bool rule,int threshold); //return cost
+	double Planner(vector<Job*> jobs, int timer, bool rule,bool estimate,bool time); //return cost
 };

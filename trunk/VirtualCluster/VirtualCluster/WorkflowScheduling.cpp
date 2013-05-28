@@ -13,12 +13,15 @@ bool sharing;
 bool on_off = true;
 double lamda;
 double QoS; //for provisioning
+double Times[4][types] = {{200,105,58,34},{140,75,43,27},{80,45,28,19},{40,25,18,14}};
+double budget;
 
 int main(int argc, char** argv)
 {
 	int depth = atoi(argv[3]);
 	int width = atoi(argv[4]);
 	deadline = atof(argv[5]);
+	double p_rate = atof(argv[15]);
 	if(strcmp(argv[6],"dynamic")==0)
 		DynamicSchedule = true;
 	else DynamicSchedule = false;
@@ -28,10 +31,19 @@ int main(int argc, char** argv)
 		sharing = true;
 	lamda = atof(argv[10]);
 	QoS = atof(argv[11]);
+	budget = atof(argv[18]);
+
+	if(p_rate != 0.95){
+		for(int i=0; i<4; i++)
+			for(int j=1; j<types; j++)
+				Times[i][j]=Times[i][0]*p_rate/pow(2.0,j) + Times[i][0]*(1 - p_rate);
+	}
 
 	//organize the inputs: workflows, VMs, user defined parameters	
 	Job testJob(pipeline,deadline,lamda);
 	Job testJob1(pipeline,deadline,lamda);
+	testJob.budget = budget;
+	testJob1.budget = budget;
 			
 	if(strcmp(argv[2], "pipeline") == 0)
 	{
@@ -169,7 +181,7 @@ int main(int argc, char** argv)
 	}
 	else if(strcmp(argv[2],"Montage") == 0) {
 		testJob.type = Montage;
-		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//22
+		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//[3.7,4.7]=4.2
 		for(int i=0; i<20+2; i++){
 			taskVertex tk;
 			tk.name = i;			
@@ -216,7 +228,7 @@ int main(int argc, char** argv)
 	}
 	else if(strcmp(argv[2], "Ligo") == 0) {//longest running time is 1080
 		testJob.type = Ligo;
-		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//42
+		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//[7.3,9.5]=8.4
 		for(int i=0; i<40+2; i++){
 			taskVertex tk;
 			tk.name = i;			
@@ -324,6 +336,7 @@ int main(int argc, char** argv)
 	}
 	else if(strcmp(argv[2],"Ligo+Montage")==0){
 		testJob.type = Ligo;
+		testJob.budget = 9.6;
 		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//42
 		for(int i=0; i<40+2; i++){
 			taskVertex tk;
@@ -366,6 +379,7 @@ int main(int argc, char** argv)
 			add_edge(20,i,testJob.g);
 
 		testJob1.type = Montage;
+		testJob1.budget = 5.5;
 		int rrnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//22
 		for(int i=0; i<20+2; i++){
 			taskVertex tk;
@@ -419,7 +433,7 @@ int main(int argc, char** argv)
 		vvp = vertices(testJob1.g);
 	
 	std::clock_t starttime = std::clock();
-	if(strcmp(argv[1], "virtualcluster") == 0 || strcmp(argv[1], "autoscaling") == 0) {
+	if(strcmp(argv[1], "virtualcluster") == 0 ) {
 		for(; vp.first!=vp.second; ++vp.first) {//edge weight for communication cost		
 			Vertex v1 = *vp.first;
 			testJob.g[v1].prefer_type = types-1;
@@ -451,30 +465,18 @@ int main(int argc, char** argv)
 		alg1.Simulate_SA(testJob);
 	}
 	else if(strcmp(argv[1], "autoscaling") == 0){
-		
-		//remove the dummy tasks which are added for deadline assign
-		vertex_iter vi, vi_end, next;
-		boost::tie(vi, vi_end) = vertices(testJob.g);
-		clear_vertex(*vi,testJob.g);
-		remove_vertex(*vi,testJob.g);
-		boost::tie(vi, vi_end) = vertices(testJob.g);
-		clear_vertex(*(--vi_end),testJob.g);
-		remove_vertex(*(vi_end),testJob.g);
+		bool time;
+		if(strcmp(argv[17],"istime")==0)
+			time = true;
+		else if(strcmp(argv[17],"cost")==0)
+			time = false;
 		
 		if(strcmp(argv[2],"Ligo+Montage")==0){
-			vertex_iter vi, vi_end, next;
-			boost::tie(vi, vi_end) = vertices(testJob1.g);
-			clear_vertex(*vi,testJob1.g);
-			remove_vertex(*vi,testJob1.g);
-			boost::tie(vi, vi_end) = vertices(testJob1.g);
-			clear_vertex(*(--vi_end),testJob1.g);
-			remove_vertex(*(vi_end),testJob1.g);
-
 			AutoScaling alg2;
-			alg2.Simulate(testJob,testJob1);
+			alg2.Simulate(testJob,testJob1,time);
 		}else{
 			AutoScaling alg2;
-			alg2.Simulate(testJob);
+			alg2.Simulate(testJob,time);
 		}
 	}
 	else if(strcmp(argv[1], "consolidation") == 0){
@@ -486,17 +488,29 @@ int main(int argc, char** argv)
 		else if(strcmp(argv[14],"random")==0)
 			rule = false;
 		else return 1;
-		int threshold = atoi(argv[15]);
+//		int threshold = atoi(argv[15]);
+//		int threshold = 1;//its not a sensitive parameter
+		bool estimate;
+		if(strcmp(argv[16],"estimate")==0)
+			estimate = true;
+		else if(strcmp(argv[16],"real")==0)
+			estimate = false;
+		else return 1;
+		bool time;
+		if(strcmp(argv[17],"istime")==0)
+			time = true;
+		else if(strcmp(argv[17],"cost")==0)
+			time = false;
 		if(strcmp(argv[2],"Ligo+Montage")==0){
 			//simulation
-			if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,testJob1,1,interval,rule,threshold);
-			else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,testJob1,2,interval,rule,threshold);
-			else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,testJob1,3,interval,rule,threshold);
+			if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,testJob1,1,interval,rule,estimate,time);
+			else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,testJob1,2,interval,rule,estimate,time);
+			else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,testJob1,3,interval,rule,estimate,time);
 		}else{
 			//simulation
-			if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,1,interval,rule,threshold);
-			else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,2,interval,rule,threshold);
-			else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,3,interval,rule,threshold);		
+			if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,1,interval,rule,estimate,time);
+			else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,2,interval,rule,estimate,time);
+			else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,3,interval,rule,estimate,time);		
 		}
 	}
 

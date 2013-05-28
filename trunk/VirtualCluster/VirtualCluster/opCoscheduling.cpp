@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "ConsolidateOperators.h"
 
-double opCoschedule(vector<VM*>* VM_queue, vector<Job*> jobs)
+double opCoschedule(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost, bool estimate,bool timeorcost)
 {/*
 	bool docoschedule = false;
 	bool domerge = false;

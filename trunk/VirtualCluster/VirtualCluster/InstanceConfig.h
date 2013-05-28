@@ -8,14 +8,10 @@ using namespace std;
 const int types = 4; //VM types
 const double priceOnDemand[] = {0.095, 0.19, 0.38, 0.76};
 const double OnDemandLag = 5;//0;
-//const double Times[4][types] = {{120,65,38,24},{90,50,30,20},{60,35,23,17},{30,20,15,13}};
-//const double Times[4][types] = {{12,7,4,2},{9,5,3,2},{6,4,2,1},{3,2,2,1}};
-//const double Times[4][types] = {{210,110,58,32},{150,80,45,28},{90,50,30,20},{30,20,15,13}};
-const double Times[4][types] = {{200,105,58,34},{140,75,43,27},{80,45,28,19},{40,25,18,14}};
 const double inter_time = 5; //time interval between 2 vms less than inter_time can be merged
 const double idle_interval = 30; //a vm has been idle for idle_interval has to be turned off
 const double degradation = 0.2;
-const int threshold = 10; //terminate planning if no gains can be obtained by consolidation for more than threshold times
+//const int threshold = 10; //terminate planning if no gains can be obtained by consolidation for more than threshold times
 
 enum Integer_vm{
 	not_ready = 0,
@@ -90,6 +86,7 @@ public:
 	int name; //mark the job with a name
 	Graph g;
 	double deadline;
+	double budget;
 	Integer_job type;
 	int* serverGroup;
 	double lamda; //arrival rate

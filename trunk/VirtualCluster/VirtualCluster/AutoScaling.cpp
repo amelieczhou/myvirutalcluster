@@ -14,12 +14,91 @@ extern bool sharing;
 extern bool on_off;
 extern double lamda;
 extern double QoS;
+extern double budget;
 
-void AutoScaling::Simulate(Job testJob) {
+void AutoScaling::Initialization(Job* testJob)
+{
+	testJob->deadline = deadline;
+	std::pair<vertex_iter, vertex_iter> vp;
+	vp = vertices(testJob->g);
+	for(; vp.first!=vp.second; ++vp.first) {//edge weight for communication cost		
+		Vertex v1 = *vp.first;
+		testJob->g[v1].prefer_type = types-1;
+	}
+			
+	testJob->deadline_assign();
+
+	//task configuration, find the prefered VM type for tasks
+	vp = vertices(testJob->g);
+	for(; vp.first != vp.second; ++vp.first)
+		testJob->g[*vp.first].instance_config();
+
+	//remove the dummy tasks which are added for deadline assign
+	/*vertex_iter vi, vi_end, next;
+	boost::tie(vi, vi_end) = vertices(testJob->g);
+	clear_vertex(*vi,testJob->g);
+	remove_vertex(*vi,testJob->g);
+	boost::tie(vi, vi_end) = vertices(testJob->g);
+	clear_vertex(*(--vi_end),testJob->g);
+	remove_vertex(*(vi_end),testJob->g);*/
+}
+void AutoScaling::Initialization(Job* testJob, Job* testJob1){
+	std::pair<vertex_iter, vertex_iter> vp, vvp;
+	vp = vertices(testJob->g);
+	vvp = vertices(testJob1->g);
+
+	for(; vp.first!=vp.second; ++vp.first) 
+	{//edge weight for communication cost		
+		Vertex v1 = *vp.first;
+		testJob->g[v1].prefer_type = types-1;
+	}
+			
+	testJob->deadline_assign();
+
+	//task configuration, find the prefered VM type for tasks
+	vp = vertices(testJob->g);
+	for(; vp.first != vp.second; ++vp.first)
+		testJob->g[*vp.first].instance_config();
+
+	for(; vvp.first != vvp.second; ++vvp.first)	{
+		Vertex v1 = *vvp.first;
+		testJob1->g[v1].prefer_type = types-1;
+	}
+	testJob1->deadline_assign();
+
+	vvp = vertices(testJob1->g);
+	for(; vvp.first!=vvp.second; ++vvp.first)
+		testJob1->g[*vvp.first].instance_config();
+
+	//remove the dummy tasks which are added for deadline assign
+	/*vertex_iter vi, vi_end, next;
+	boost::tie(vi, vi_end) = vertices(testJob->g);
+	clear_vertex(*vi,testJob->g);
+	remove_vertex(*vi,testJob->g);
+	boost::tie(vi, vi_end) = vertices(testJob->g);
+	clear_vertex(*(--vi_end),testJob->g);
+	remove_vertex(*(vi_end),testJob->g);
+
+	boost::tie(vi, vi_end) = vertices(testJob1->g);
+	clear_vertex(*vi,testJob1->g);
+	remove_vertex(*vi,testJob1->g);
+	boost::tie(vi, vi_end) = vertices(testJob1->g);
+	clear_vertex(*(--vi_end),testJob1->g);
+	remove_vertex(*(vi_end),testJob1->g);*/		
+}
+void AutoScaling::Simulate(Job testJob, bool timeorcost) {
+	//if timeorcost==true, optimize time
+	if(timeorcost){
+		deadline = 500;
+	}
+	
+timeoptimize:
+	Initialization(&testJob);
 	std::vector<Job*> workflows; //continuous workflow
 	double arrival_time = 0;
+	
 	Job* job = new Job(pipeline, deadline, lamda);
-	job->g = testJob.g; job->type = testJob.type;
+	job->g = testJob.g; job->type = testJob.type; job->budget = testJob.budget;
 	job->arrival_time = 0;
 	workflows.push_back(job);
 	double t = 0; 
@@ -48,7 +127,7 @@ void AutoScaling::Simulate(Job testJob) {
 		arrival_time = atof(time);
 
 		Job* job = new Job(pipeline,deadline+arrival_time,lamda);
-		job->g = testJob.g; job->type = testJob.type;
+		job->g = testJob.g; job->type = testJob.type; job->budget = testJob.budget;
 		job->arrival_time = arrival_time;
 		vp = vertices(job->g);
 		for(int i=0; i<(*vp.second - *vp.first); i++)
@@ -65,17 +144,26 @@ void AutoScaling::Simulate(Job testJob) {
 		for(int i=0; i<workflows.size(); i++) {
 			if((int)t == (int)workflows[i]->arrival_time) {
 				vp = vertices(workflows[i]->g);
-				if(testJob.type == single || testJob.type == pipeline || testJob.type == hybrid)
+				if(testJob.type == single || testJob.type == pipeline || testJob.type == hybrid){
 					workflows[i]->g[*vp.first].status = ready;
-				else if(testJob.type == Montage)
+				}
+				else if(testJob.type == Montage){
+					workflows[i]->g[*vp.first].status = finished;
+					workflows[i]->g[*(vp.second-1)].status = finished;
 					for(int j=0; j<4; j++)
-						workflows[i]->g[j].status = ready;
-				else if(testJob.type == Ligo)
+						workflows[i]->g[j+1].status = ready;
+				}
+				else if(testJob.type == Ligo){
+					workflows[i]->g[*vp.first].status = finished;
+					workflows[i]->g[*(vp.second-1)].status = finished;
 					for(int j=0; j<9; j++)
-						workflows[i]->g[j].status = ready;
+						workflows[i]->g[j+1].status = ready;
+				}
 				else if(testJob.type == Cybershake) {
-					workflows[i]->g[0].status = ready;
-					workflows[i]->g[1].status = ready;
+					workflows[i]->g[*vp.first].status = finished;
+					workflows[i]->g[*(vp.second-1)].status = finished;
+					workflows[i]->g[0+1].status = ready;
+					workflows[i]->g[1+1].status = ready;
 				}
 				break;
 			}
@@ -240,6 +328,15 @@ void AutoScaling::Simulate(Job testJob) {
 			moneycost += (priceOnDemand[i] * ceil(runtime/60.0));
 		}
 	}
+	if(timeorcost){
+		double unitmoney = moneycost / workflows.size();
+		if(unitmoney > testJob.budget){
+			deadline += 20.0;
+			goto timeoptimize;
+		}	
+		else
+			printf("current deadline is:%.4f\n", deadline);
+	}
 	printf("Money Cost: %.4f\n ", moneycost);
 
 	int num_jobs = workflows.size();
@@ -250,6 +347,19 @@ void AutoScaling::Simulate(Job testJob) {
 	for(int i=0; i<num_jobs; i++)	{
 		vp = vertices(workflows[i]->g);
 		if(workflows[i]->g[*(vp.second - 1)].status == finished) {
+			//get parent vertices
+			in_edge_iterator in_i, in_end;
+			edge_descriptor e;
+			boost::tie(in_i, in_end) = in_edges(*(vp.second - 1), workflows[i]->g);
+				
+			for (; in_i != in_end; ++in_i) {
+				e = *in_i;
+				Vertex src = source(e, workflows[i]->g);					
+				if(workflows[i]->g[src].end_time > workflows[i]->g[*(vp.second-1)].end_time){
+					workflows[i]->g[*(vp.second-1)].end_time = workflows[i]->g[src].end_time;
+				}
+			}
+				
 			ave_exeT += (workflows[i]->g[*(vp.second -1)].end_time - workflows[i]->arrival_time);
 			if(workflows[i]->g[*(vp.second -1)].end_time > workflows[i]->deadline)
 				violation += 1;
@@ -262,13 +372,18 @@ void AutoScaling::Simulate(Job testJob) {
 	std::cout<<"deadline violation rate: "<<(violation/count)<<std::endl;
 	std::cout<<"end of execution."<<std::endl;
 }
-void AutoScaling::Simulate(Job testJob, Job testJob1) {
+void AutoScaling::Simulate(Job testJob, Job testJob1, bool timeorcost) {
+	if(timeorcost)
+		deadline = 500.0;
+
+timeoptimize:
+	Initialization(&testJob,&testJob1);
 	std::vector<Job*> workflows; //continuous workflow
 	double arrival_time = 0;
 	Job* job = new Job(pipeline, deadline, lamda);
 	Job* job1 = new Job(pipeline, deadline, lamda);
-	job->g = testJob.g; job->type = testJob.type;
-	job1->g = testJob1.g; job1->type = testJob1.type;
+	job->g = testJob.g; job->type = testJob.type; job->budget = testJob.budget;
+	job1->g = testJob1.g; job1->type = testJob1.type; job1->budget = testJob1.budget;
 	job->arrival_time = job1->arrival_time = 0;
 	workflows.push_back(job);
 	workflows.push_back(job1);
@@ -299,8 +414,8 @@ void AutoScaling::Simulate(Job testJob, Job testJob1) {
 
 		Job* job = new Job(pipeline,deadline+arrival_time,lamda);
 		Job* job1 = new Job(pipeline,deadline+arrival_time,lamda);
-		job->g = testJob.g; job->type = testJob.type;
-		job1->g = testJob1.g; job1->type = testJob1.type;
+		job->g = testJob.g; job->type = testJob.type; job->budget = testJob.budget;
+		job1->g = testJob1.g; job1->type = testJob1.type; job1->budget = testJob1.budget;
 		job->arrival_time = job1->arrival_time = arrival_time;
 		vp = vertices(job->g);
 		vvp = vertices(job1->g);
@@ -496,6 +611,15 @@ void AutoScaling::Simulate(Job testJob, Job testJob1) {
 			double runtime = VMTP[i][j]->life_time;
 			moneycost += (priceOnDemand[i] * ceil(runtime/60.0));
 		}
+	}
+	if(timeorcost){
+		double unitmoney = moneycost / workflows.size();
+		if(unitmoney > (testJob.budget+testJob1.budget)/2){
+			deadline += 10.0;
+			goto timeoptimize;
+		}	
+		else
+			printf("current deadline is:%.4f\n", deadline);
 	}
 	printf("Money Cost: %.4f\n ", moneycost);
 
