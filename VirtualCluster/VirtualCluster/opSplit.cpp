@@ -1,8 +1,10 @@
 #include "stdafx.h"
 #include "ConsolidateOperators.h"
 
-double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost)
+double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost, bool estimate, bool timeorcost)
 {
+	if(timeorcost)
+		return 0;
 	bool dosplit = false;
 	double costsplit = 0;
 
@@ -50,8 +52,7 @@ double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost)
 				//find vms in vm queue i that the sum of their residual time is enough for task j execution
 				for(int k1=0; k1<VM_queue[i].size(); k1++){
 					if(k1 != j && VM_queue[i][k1]->start_time + VM_queue[i][k1]->life_time > VM_queue[i][j]->start_time){
-						if(j==1)
-							printf("");
+						//put j to the end of k1
 						double moveafter1 = VM_queue[i][k1]->end_time - VM_queue[i][j]->start_time;
 						if(moveafter1 <= 0) moveafter1 =0;
 						bool deadlineok1 = true;
@@ -70,13 +71,7 @@ double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost)
 								for(int s=0; s<VM_queue_backup[t].size(); s++){
 									deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);
 								}
-								for(int t=0; t<jobs.size(); t++)
-										{
-											vp = vertices(jobs[t]->g);
-											for(; vp.first!=vp.second; vp.first++)
-												if(jobs[t]->g[*vp.first].name != jobs_backup[t]->g[*vp.first].name)
-													printf("");
-										}
+							
 							continue;//try next vm k1 in queue i
 						}
 						updateVMqueue(VM_queue);
@@ -134,70 +129,98 @@ double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost)
 								for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
 									cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
 							
-							if(moveafter1 == 0)
-								move_operation2(jobs, VM_queue[i][j], VM_queue[i][k1],0);
-							else
-								move_operation1(jobs, VM_queue[i][j], VM_queue[i][k1],0,moveafter1);
-							bool update = updateVMqueue(VM_queue);
-							double cost2=0;
-							for(int ttype=0; ttype<types; ttype++)
-								for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
-									cost2 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
-							if(cost2 >= cost1){								
-								vector<taskVertex*> tasks;
-								for(int t=0; t<numoftasks; t++)	{
-									taskVertex* task = VM_queue[i][k1]->assigned_tasks[0].back();
-									VM_queue[i][k1]->assigned_tasks[0].pop_back();
-									tasks.push_back(task);
-								}								
-								VM_queue[i][j]->assigned_tasks.push_back(tasks);
-								//site recovery 
+							double t1 = VM_queue[i][j]->end_time - VM_queue[i][j]->start_time;
+							double t2 = VM_queue[i][k1]->end_time - VM_queue[i][k1]->start_time;
+							double t3 = VM_queue[i][j]->end_time + moveafter1 - VM_queue[i][k1]->start_time;												
+							costsplit = move(i,t1,t2,t3);
 
+							if(checkcost && estimate && costsplit>1e-12){
 								for(int t=0; t<types; t++){
-									//VM_queue[t].resize(VM_queue_backup[t].size());
 									for(int s=0; s<VM_queue_backup[t].size(); s++){
 										deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);									
 									}
 								}
-								deepdelete(VM_queue_state);
-								continue;//to the next k1
-							}
-							else{
-								if(checkcost){
-									vector<taskVertex*> tasks;
-									for(int t=0; t<numoftasks; t++)	{
-										taskVertex* task = VM_queue[i][k1]->assigned_tasks[0].back();
-										VM_queue[i][k1]->assigned_tasks[0].pop_back();
-										tasks.push_back(task);
-									}									
-									VM_queue[i][j]->assigned_tasks.push_back(tasks);
-									//site recovery 
-									for(int t=0; t<types; t++){
-										//VM_queue[t].resize(VM_queue_backup[t].size());
-										for(int s=0; s<VM_queue_backup[t].size(); s++){
-											deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);									
-										}
-									}
-									deepdelete(VM_queue_backup);
-									deepdelete(VM_queue_state);
-									return cost1-cost2;
-								}
-								VM_queue[i].erase(VM_queue[i].begin()+j);
 								deepdelete(VM_queue_backup);
 								deepdelete(VM_queue_state);
-								if(moveafter1 == 0)
-									printf("split move operation 2\n");
-								else printf("split move operation 1\n");
-								return cost1-cost2;
-							}
+								return costsplit;
+							}else if(checkcost && estimate){
+								//do nothing
+								deepdelete(VM_queue_state);
+								continue;//to the next k1
+							}else if(!(checkcost && estimate)){								
+							//}else if(!estimate){
+								//if(costsplit>1e-12)	{
+									if(moveafter1 == 0)
+										move_operation2(jobs, VM_queue[i][j], VM_queue[i][k1],0);
+									else
+										move_operation1(jobs, VM_queue[i][j], VM_queue[i][k1],0,moveafter1);
+
+									bool update = updateVMqueue(VM_queue);
+									double cost2=0;
+									for(int ttype=0; ttype<types; ttype++)
+										for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
+											cost2 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+									if(cost2 >= cost1){								
+										vector<taskVertex*> tasks;
+										for(int t=0; t<numoftasks; t++)	{
+											taskVertex* task = VM_queue[i][k1]->assigned_tasks[0].back();
+											VM_queue[i][k1]->assigned_tasks[0].pop_back();
+											tasks.push_back(task);
+										}								
+										VM_queue[i][j]->assigned_tasks.push_back(tasks);
+										//site recovery 
+										for(int t=0; t<types; t++){
+											//VM_queue[t].resize(VM_queue_backup[t].size());
+											for(int s=0; s<VM_queue_backup[t].size(); s++){
+												deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);									
+											}
+										}
+										deepdelete(VM_queue_state);
+										continue;//to the next k1
+									}
+									else{
+										if(checkcost){
+											vector<taskVertex*> tasks;
+											for(int t=0; t<numoftasks; t++)	{
+												taskVertex* task = VM_queue[i][k1]->assigned_tasks[0].back();
+												VM_queue[i][k1]->assigned_tasks[0].pop_back();
+												tasks.push_back(task);
+											}									
+											VM_queue[i][j]->assigned_tasks.push_back(tasks);
+											//site recovery 
+											for(int t=0; t<types; t++){
+												//VM_queue[t].resize(VM_queue_backup[t].size());
+												for(int s=0; s<VM_queue_backup[t].size(); s++){
+													deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);									
+												}
+											}
+											deepdelete(VM_queue_backup);
+											deepdelete(VM_queue_state);
+											return cost1-cost2;
+										}
+										VM_queue[i].erase(VM_queue[i].begin()+j);
+										deepdelete(VM_queue_backup);
+										deepdelete(VM_queue_state);
+										if(moveafter1 == 0)
+											printf("split move operation 2\n");
+										else printf("split move operation 1\n");
+										return cost1-cost2;
+									}
+								//}
+							}					
+							deepdelete(VM_queue_state);
 						}else if(splittask == -1){
 							//do not need to split task, can put some of the tasks in vm j to vm k1
 							//find another vm to hold the rest part of vm j
+							double starttime = VM_queue[i][j]->assigned_tasks[0][second_names[0]]->start_time;
+							for(int sn=1; sn<second_names.size(); sn++)
+								if(starttime>VM_queue[i][j]->assigned_tasks[0][second_names[sn]]->start_time)
+									starttime = VM_queue[i][j]->assigned_tasks[0][second_names[sn]]->start_time;
+							double endtime = 0;
+							for(int fn=0; fn<first_names.size(); fn++)
+								if(endtime<VM_queue[i][j]->assigned_tasks[0][first_names[fn]]->end_time)
+									endtime=VM_queue[i][j]->assigned_tasks[0][first_names[fn]]->end_time;
 							for(int k2=0; k2<VM_queue[i].size(); k2++){
-								double starttime = VM_queue[i][j]->assigned_tasks[0][second_names[0]]->start_time;
-								for(int sn=1; sn<second_names.size(); sn++)
-									if(starttime>VM_queue[i][j]->assigned_tasks[0][second_names[sn]]->start_time)
-										starttime = VM_queue[i][j]->assigned_tasks[0][second_names[sn]]->start_time;
 								if(k1!=k2 && k2!=j && VM_queue[i][k2]->start_time + VM_queue[i][k2]->life_time > starttime){
 									double moveafter2 = VM_queue[i][k2]->end_time - starttime;
 									if(moveafter2 <0) moveafter2 = 0;
@@ -218,103 +241,54 @@ double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost)
 											for(int s=0; s<VM_queue_backup[t].size(); s++){
 												deepcopy(VM_queue[t][s], VM_queue_state[t][s]);
 											}
-										for(int t=0; t<jobs.size(); t++)
-										{
-											vp = vertices(jobs[t]->g);
-											for(; vp.first!=vp.second; vp.first++)
-												if(jobs[t]->g[*vp.first].name != jobs_backup[t]->g[*vp.first].name)
-													printf("");
-										}
 										continue;//try next vm k2 in queue i
 									}
-									updateVMqueue(VM_queue);
-									double cost1=0;
-									for(int ttype=0; ttype<types; ttype++)
-										for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
-											cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
-									int numoftasks = VM_queue[i][j]->assigned_tasks[0].size();
-									for(int sn=0; sn<first_names.size(); sn++){
-										taskVertex* task = VM_queue[i][j]->assigned_tasks[0][first_names[sn]];
-										VM_queue[i][k1]->assigned_tasks[0].push_back(task);
-									}							
-									for(int sn=0; sn<second_names.size(); sn++){
-										taskVertex* task =  VM_queue[i][j]->assigned_tasks[0][second_names[sn]];
-										VM_queue[i][k2]->assigned_tasks[0].push_back(task);
-									}
-									VM_queue[i][j]->assigned_tasks.clear();
-									VM_queue[i][j]->end_time=VM_queue[i][j]->start_time=VM_queue[i][j]->life_time=VM_queue[i][j]->resi_time=0;
-									bool update = updateVMqueue(VM_queue);
-									double cost2=0;
-									for(int ttype=0; ttype<types; ttype++)
-										for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
-											cost2 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
-									if(cost2>=cost1){
-										vector<taskVertex*> tasks,tasks1;
-										vector<taskVertex*> firsttasks, secondtasks;
-										for(int sn=0; sn<first_names.size(); sn++){
-											taskVertex* task = VM_queue[i][k1]->assigned_tasks[0].back();
-											VM_queue[i][k1]->assigned_tasks[0].pop_back();
-											firsttasks.push_back(task);
-										}
-										reverse(firsttasks.begin(),firsttasks.end());
-										//for(int t=0; t<numoftasks-splitindex-1; t++){
-										for(int sn=0; sn<second_names.size(); sn++){
-											taskVertex* task = VM_queue[i][k2]->assigned_tasks[0].back();
-											VM_queue[i][k2]->assigned_tasks[0].pop_back();
-											secondtasks.push_back(task);
-										}
-										reverse(secondtasks.begin(),secondtasks.end());
-										for(int t=0; t<numoftasks; t++){
-											int tt=0;
-											for(; tt<first_names.size(); tt++){
-												if(first_names[tt]==t){
-													taskVertex* task = firsttasks[tt];
-													tasks.push_back(task);
-													break;
-												}
-											}
-											if(tt==first_names.size()){
-												for(int ttt=0; ttt<second_names.size(); ttt++){
-													if(second_names[ttt]==t){
-														taskVertex* task = secondtasks[ttt];
-														tasks.push_back(task);
-													}
-												}
-											}
-										}
-										/*for(int t=0; t<numoftasks; t++)
-										{
-											taskVertex* task=tasks.back();
-											tasks1.push_back(task);
-										}*/
-										//tasks.clear();
-										VM_queue[i][j]->assigned_tasks.push_back(tasks);
+
+									double t1= VM_queue[i][j]->end_time - VM_queue[i][j]->start_time;
+									double t2= VM_queue[i][k1]->end_time - VM_queue[i][k1]->start_time;
+									double t3 = VM_queue[i][k2]->end_time - VM_queue[i][k2]->start_time;
+									double t4 = VM_queue[i][j]->end_time + moveafter2 - VM_queue[i][k2]->start_time +
+										endtime + moveafter1 - VM_queue[i][k1]->start_time;
+									costsplit = (ceil(t1/60)+ceil(t2/60)+ceil(t3/60)-ceil(t4/60))*priceOnDemand[i];
+									if(checkcost && estimate && costsplit>1e-12){
 										for(int t=0; t<types; t++)
 											for(int s=0; s<VM_queue_backup[t].size(); s++)	
 												deepcopy(VM_queue[t][s],VM_queue_state[t][s]);
-										for(int t=0; t<jobs.size(); t++)
-										{
-											vp = vertices(jobs[t]->g);
-											for(; vp.first!=vp.second; vp.first++)
-												if(jobs[t]->g[*vp.first].name != jobs_backup[t]->g[*vp.first].name)
-													printf("");
+											
+										deepdelete(VM_queue_backup);
+										deepdelete(VM_queue_state);
+										return costsplit;
+									}else if(checkcost && estimate){
+										for(int t=0; t<types; t++)
+											for(int s=0; s<VM_queue_backup[t].size(); s++){
+												deepcopy(VM_queue[t][s], VM_queue_state[t][s]);
+											}
+										continue;//to the next k2
+									}else if(!(checkcost && estimate)){
+										//}else if(!estimate){
+										updateVMqueue(VM_queue);
+										double cost1=0;
+										for(int ttype=0; ttype<types; ttype++)
+											for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
+												cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+										int numoftasks = VM_queue[i][j]->assigned_tasks[0].size();
+										for(int sn=0; sn<first_names.size(); sn++){
+											taskVertex* task = VM_queue[i][j]->assigned_tasks[0][first_names[sn]];
+											VM_queue[i][k1]->assigned_tasks[0].push_back(task);
+										}							
+										for(int sn=0; sn<second_names.size(); sn++){
+											taskVertex* task =  VM_queue[i][j]->assigned_tasks[0][second_names[sn]];
+											VM_queue[i][k2]->assigned_tasks[0].push_back(task);
 										}
-										continue;
-									}else{
-										if(checkcost){
+										VM_queue[i][j]->assigned_tasks.clear();
+										VM_queue[i][j]->end_time=VM_queue[i][j]->start_time=VM_queue[i][j]->life_time=VM_queue[i][j]->resi_time=0;
+										bool update = updateVMqueue(VM_queue);
+										double cost2=0;
+										for(int ttype=0; ttype<types; ttype++)
+											for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
+												cost2 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+										if(cost2>=cost1){
 											vector<taskVertex*> tasks,tasks1;
-											//for(int t=0; t<splitindex+1; t++){
-											//for(int sn=0; sn<first_names.size(); sn++){
-											//	taskVertex* task = VM_queue[i][k1]->assigned_tasks[0].back();
-											//	VM_queue[i][k1]->assigned_tasks[0].pop_back();
-											//	tasks.push_back(task);
-											//}
-											////for(int t=0; t<numoftasks-splitindex-1; t++){
-											//for(int sn=0; sn<second_names.size(); sn++){
-											//	taskVertex* task = VM_queue[i][k2]->assigned_tasks[0].back();
-											//	VM_queue[i][k2]->assigned_tasks[0].pop_back();
-											//	tasks.push_back(task);
-											//}
 											vector<taskVertex*> firsttasks, secondtasks;
 											for(int sn=0; sn<first_names.size(); sn++){
 												taskVertex* task = VM_queue[i][k1]->assigned_tasks[0].back();
@@ -347,34 +321,87 @@ double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost)
 													}
 												}
 											}
-											//for(int t=numoftasks-1; t>=0; t--)
-											//{
-											//	taskVertex* task=tasks[t];//tasks.back();
-											//	//tasks.pop_back();
-											//	tasks1.push_back(task);
-											//}
-										//	tasks.clear();
+											/*for(int t=0; t<numoftasks; t++)
+											{
+												taskVertex* task=tasks.back();
+												tasks1.push_back(task);
+											}*/
+											//tasks.clear();
 											VM_queue[i][j]->assigned_tasks.push_back(tasks);
 											for(int t=0; t<types; t++)
 												for(int s=0; s<VM_queue_backup[t].size(); s++)	
 													deepcopy(VM_queue[t][s],VM_queue_state[t][s]);
-											for(int t=0; t<jobs.size(); t++)
-										{
-											vp = vertices(jobs[t]->g);
-											for(; vp.first!=vp.second; vp.first++)
-												if(jobs[t]->g[*vp.first].name != jobs_backup[t]->g[*vp.first].name)
-													printf("");
-										}
+											continue;
+										}else{
+											if(checkcost){
+												vector<taskVertex*> tasks,tasks1;
+												//for(int t=0; t<splitindex+1; t++){
+												//for(int sn=0; sn<first_names.size(); sn++){
+												//	taskVertex* task = VM_queue[i][k1]->assigned_tasks[0].back();
+												//	VM_queue[i][k1]->assigned_tasks[0].pop_back();
+												//	tasks.push_back(task);
+												//}
+												////for(int t=0; t<numoftasks-splitindex-1; t++){
+												//for(int sn=0; sn<second_names.size(); sn++){
+												//	taskVertex* task = VM_queue[i][k2]->assigned_tasks[0].back();
+												//	VM_queue[i][k2]->assigned_tasks[0].pop_back();
+												//	tasks.push_back(task);
+												//}
+												vector<taskVertex*> firsttasks, secondtasks;
+												for(int sn=0; sn<first_names.size(); sn++){
+													taskVertex* task = VM_queue[i][k1]->assigned_tasks[0].back();
+													VM_queue[i][k1]->assigned_tasks[0].pop_back();
+													firsttasks.push_back(task);
+												}
+												reverse(firsttasks.begin(),firsttasks.end());
+												//for(int t=0; t<numoftasks-splitindex-1; t++){
+												for(int sn=0; sn<second_names.size(); sn++){
+													taskVertex* task = VM_queue[i][k2]->assigned_tasks[0].back();
+													VM_queue[i][k2]->assigned_tasks[0].pop_back();
+													secondtasks.push_back(task);
+												}
+												reverse(secondtasks.begin(),secondtasks.end());
+												for(int t=0; t<numoftasks; t++){
+													int tt=0;
+													for(; tt<first_names.size(); tt++){
+														if(first_names[tt]==t){
+															taskVertex* task = firsttasks[tt];
+															tasks.push_back(task);
+															break;
+														}
+													}
+													if(tt==first_names.size()){
+														for(int ttt=0; ttt<second_names.size(); ttt++){
+															if(second_names[ttt]==t){
+																taskVertex* task = secondtasks[ttt];
+																tasks.push_back(task);
+															}
+														}
+													}
+												}
+												//for(int t=numoftasks-1; t>=0; t--)
+												//{
+												//	taskVertex* task=tasks[t];//tasks.back();
+												//	//tasks.pop_back();
+												//	tasks1.push_back(task);
+												//}
+											//	tasks.clear();
+												VM_queue[i][j]->assigned_tasks.push_back(tasks);
+												for(int t=0; t<types; t++)
+													for(int s=0; s<VM_queue_backup[t].size(); s++)	
+														deepcopy(VM_queue[t][s],VM_queue_state[t][s]);
+											
+												deepdelete(VM_queue_backup);
+												deepdelete(VM_queue_state);
+												return cost1-cost2;
+											}
+											VM_queue[i].erase(VM_queue[i].begin()+j);
 											deepdelete(VM_queue_backup);
 											deepdelete(VM_queue_state);
+											printf("split without split a task\n");
 											return cost1-cost2;
 										}
-										VM_queue[i].erase(VM_queue[i].begin()+j);
-										deepdelete(VM_queue_backup);
-										deepdelete(VM_queue_state);
-										printf("split without split a task\n");
-										return cost1-cost2;
-									}
+									}								
 								}
 							}//for next k2	
 							deepdelete(VM_queue_state);

@@ -1,11 +1,12 @@
 #include "stdafx.h"
 #include "ConsolidateOperators.h"
 
-double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
+double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost, bool estimate, bool timeorcost)
 {
 	//Rule 1, promote can merge with left or right
 	bool dopromote = false;
 	double costpromote = 0;
+	double timepromote = 0;
 
 	//save context for site recovery to the very beginning
 	vector<vector<VM*> > VM_queue_backup;
@@ -64,6 +65,8 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
 						double exetime = VM_queue[i][iter]->assigned_tasks[out][in]->end_time - VM_queue[i][iter]->assigned_tasks[out][in]->start_time;
 						VM_queue[i][iter]->assigned_tasks[out][in]->assigned_type = j;
 						deadlineok = time_flood(jobs[VM_queue[i][iter]->assigned_tasks[out][in]->job_id],VM_queue[i][iter]->assigned_tasks[out][in]->name);
+						if(timeorcost)
+							deadlineok=true;
 						double newexetime = exetime*VM_queue[i][iter]->assigned_tasks[out][in]->estTime[j]/VM_queue[i][iter]->assigned_tasks[out][in]->estTime[i];
 						//if(in>0)//for debuging only
 						//	printf("");
@@ -83,7 +86,36 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
 					continue; //try promote the next task
 				}
 				dopromote = true;
+				double time1 = 0;
+				for(int ttype=0; ttype<jobs.size(); ttype++){
+					pair<vertex_iter, vertex_iter> vp;
+					vp = vertices(jobs[ttype]->g);
+					time1 += jobs[ttype]->g[*(vp.second-1)].end_time;
+				}
+				time1 /= jobs.size();
 				bool update = updateVMqueue(VM_queue);
+				if(timeorcost){
+					//budget violated
+					bool checkbudget=true;
+					double totalcost=0;
+					for(int iindex=0; iindex<types; iindex++)
+						for(int jindex=0; jindex <VM_queue[iindex].size(); jindex++)
+							totalcost+= ceil((VM_queue[iindex][jindex]->end_time-VM_queue[iindex][jindex]->start_time)/60)*priceOnDemand[VM_queue[iindex][jindex]->type];
+					if(totalcost/jobs.size() > jobs[0]->budget) checkbudget = false;
+					//update = checkbudget;
+					//time get longer
+					double time2 = 0;
+					for(int ttype=0; ttype<jobs.size(); ttype++){
+						pair<vertex_iter, vertex_iter> vp;
+						vp = vertices(jobs[ttype]->g);
+						time2 += jobs[ttype]->g[*(vp.second-1)].end_time;
+					}
+					time2 /= jobs.size();
+					bool timeok = true;
+					if(time2>time1) timeok = false;
+					else if(time2==time1) timeok = update;
+					update = timeok&&checkbudget;
+				}
 				if(!update){//although deadline is ok, promote is not cost efficient
 					for(int t=0; t<types; t++){
 						for(int s=0; s<VM_queue_backup[t].size(); s++)	{	
@@ -118,6 +150,7 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
 				//promote i to type j
 				double t2 = VM_queue[i][iter]->end_time - VM_queue[i][iter]->start_time;
 				costpromote = ppromote(i, t1, j, t2); //<=0
+				timepromote = t1-t2;
 				//check merge
 				for(int k=0; k<VM_queue[j].size(); k++){
 					if(VM_queue[j][k]->assigned_tasks.size() == 1){
@@ -142,94 +175,222 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost)
 								t3 = outendtime - VM_queue[j][k]->start_time;//VM_queue[i][iter]->assigned_tasks[out][taskend]->end_time - VM_queue[j][k]->start_time;
 							else continue;//to the next VM queue
 							double costmove = move(j,t1,t2,t3);
-							costpromote += costmove;		
-							if(costpromote > 1e-12){
-								double cost1=0;
-								for(int ttype=0; ttype<types; ttype++)
-									for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
-										cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
-								//first do the promotion
-								promote_operation(jobs,VM_queue[i][iter],j);
-								//then do merge
-								int numoftasks = VM_queue[j][k]->assigned_tasks[0].size();//how many tasks are merged to vm[i][iiter]
-								move_operation2(jobs,VM_queue[j][k],VM_queue[i][iter],out);
-								bool update = updateVMqueue(VM_queue);
-								double cost2=0;
-								for(int ttype=0; ttype<types; ttype++)
-									for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
-										cost2 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
-								if(cost2>cost1){ //new cost no less than before
-									//promote only changes values, move_operation changes vector size
-									vector<taskVertex*> tasks;
-									for(int taskiter=0; taskiter<numoftasks; taskiter++){
-										taskVertex* task = VM_queue[i][iter]->assigned_tasks[out].back();
-										VM_queue[i][iter]->assigned_tasks[out].pop_back();
-										tasks.push_back(task);										
-									}
-									VM_queue[j][k]->assigned_tasks.push_back(tasks);
-									if(numoftasks==0)
-										printf("");
-									for(int t=0; t<types; t++)
-										for(int s=0; s<VM_queue_state[t].size(); s++)
-											//*VM_queue[t][s] = *VM_queue_state[t][s];
-											deepcopy(VM_queue[t][s], VM_queue_state[t][s]);
-									continue;//break to the next out queue
-								}
-								if(checkcost){
-									vector<taskVertex*> tasks;
-									for(int taskiter=0; taskiter<numoftasks; taskiter++){
-										taskVertex* task = VM_queue[i][iter]->assigned_tasks[out].back();
-										VM_queue[i][iter]->assigned_tasks[out].pop_back();
-										tasks.push_back(task);										
-									}
-									VM_queue[j][k]->assigned_tasks.push_back(tasks);
-									for(int t=0; t<types; t++)
-										for(int s=0; s<VM_queue_backup[t].size(); s++)
-											//*VM_queue[t][s] = *VM_queue_state[t][s];
-											deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);
-									deepdelete(VM_queue_backup);
-									deepdelete(VM_queue_state);
-									return cost1-cost2;
-								}
-								VM_queue[j].push_back(VM_queue[i][iter]);
-								VM_queue[i].erase(VM_queue[i].begin()+iter);
-								//delete VM_queue[j][k];
-								//VM_queue[j][k] = NULL;
-								VM_queue[j].erase(VM_queue[j].begin()+k);
-
-								/*double finalcost = 0;
-								for(int iiter=0; iiter<types; iiter++)
-									for(int jiter=0; jiter<VM_queue[iiter].size(); jiter++)
-										finalcost += priceOnDemand[VM_queue[iiter][jiter]->type]*VM_queue[iiter][jiter]->life_time/60.0;
-								if(finalcost>initialcost){									
-									for(int t=0; t<types; t++){
-										for(int s=0; s<VM_queue[t].size(); s++){
-											delete VM_queue[t][s];
-											VM_queue[t][s] = NULL;
-										}
-										VM_queue[t].clear();
-										vector<VM*> vms;
-										for(int s=0; s<VM_queue_state[t].size(); s++)	{
-											VM* vm = new VM();
-											deepcopy(vm,VM_queue_state[t][s]);
-											vms.push_back(vm);
-										}
-										VM_queue[t] =vms;
-									}
-								}
-								else{*/
-									deepdelete(VM_queue_backup);
-									deepdelete(VM_queue_state);
-									printf("promote operation and move operation 2\n");
-									return cost1-cost2;
-								//}
-							}else{ //
+							costpromote += costmove;	
+							
+							if(checkcost && estimate && timeorcost && timepromote>1e-12){
 								for(int t=0; t<types; t++)
-									for(int s=0; s<VM_queue_backup[t].size(); s++)	{
+									for(int s=0; s<VM_queue_backup[t].size(); s++)
+										deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);
+								deepdelete(VM_queue_backup);
+								deepdelete(VM_queue_state);
+								return timepromote;
+							}else if(checkcost && estimate && timeorcost){
+								for(int t=0; t<types; t++)
+									for(int s=0; s<VM_queue_state[t].size(); s++)	{
+										deepcopy(VM_queue[t][s],VM_queue_state[t][s]);
+									}
+								continue;//to the next out queue
+							}
+							if(checkcost && estimate && costpromote>1e-12&&!timeorcost){
+								for(int t=0; t<types; t++)
+									for(int s=0; s<VM_queue_backup[t].size(); s++)
+										deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);
+								deepdelete(VM_queue_backup);
+								deepdelete(VM_queue_state);
+								return costpromote;
+							}else if(checkcost && estimate &&!timeorcost){
+								for(int t=0; t<types; t++)
+									for(int s=0; s<VM_queue_state[t].size(); s++)	{
 										deepcopy(VM_queue[t][s],VM_queue_state[t][s]);
 									}
 								costpromote -= costmove;
-							}							
+							}else if(!checkcost && estimate){
+								bool condition1;
+								if(timeorcost) condition1 = timepromote>1e-12;
+								else if(!timeorcost) condition1 = costpromote > 1e-12;
+								if(condition1){
+									double cost1=0;
+									for(int ttype=0; ttype<types; ttype++)
+										for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
+											cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+									double time1 = 0;
+									for(int ttype=0; ttype<jobs.size(); ttype++){
+										pair<vertex_iter, vertex_iter> vp;
+										vp = vertices(jobs[ttype]->g);
+										time1 += jobs[ttype]->g[*(vp.second-1)].end_time;
+									}
+									time1 /= jobs.size();
+									//first do the promotion
+									promote_operation(jobs,VM_queue[i][iter],j);
+									//then do merge
+									int numoftasks = VM_queue[j][k]->assigned_tasks[0].size();//how many tasks are merged to vm[i][iiter]
+									move_operation2(jobs,VM_queue[j][k],VM_queue[i][iter],out);
+									bool update = updateVMqueue(VM_queue);
+									double cost2=0;
+									for(int ttype=0; ttype<types; ttype++)
+										for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
+											cost2 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+									double time2 = 0;
+									for(int ttype=0; ttype<jobs.size(); ttype++){
+										pair<vertex_iter, vertex_iter> vp;
+										vp = vertices(jobs[ttype]->g);
+										time2 += jobs[ttype]->g[*(vp.second-1)].end_time;
+									}
+									time2 /= jobs.size();
+									bool failcondition = false;									
+									if(time2>time1) failcondition=true;
+									else if(time2==time1 && cost2>=cost1) failcondition=true;
+									
+									if(failcondition){ //new cost no less than before
+										//promote only changes values, move_operation changes vector size
+										vector<taskVertex*> tasks;
+										for(int taskiter=0; taskiter<numoftasks; taskiter++){
+											taskVertex* task = VM_queue[i][iter]->assigned_tasks[out].back();
+											VM_queue[i][iter]->assigned_tasks[out].pop_back();
+											tasks.push_back(task);										
+										}
+										VM_queue[j][k]->assigned_tasks.push_back(tasks);										
+										for(int t=0; t<types; t++)
+											for(int s=0; s<VM_queue_state[t].size(); s++)												
+												deepcopy(VM_queue[t][s], VM_queue_state[t][s]);
+										continue;//break to the next out queue
+									}else{
+										VM_queue[j].push_back(VM_queue[i][iter]);
+										VM_queue[i].erase(VM_queue[i].begin()+iter);
+										VM_queue[j].erase(VM_queue[j].begin()+k);
+
+										deepdelete(VM_queue_backup);
+										deepdelete(VM_queue_state);
+										printf("promote operation and move operation 2\n");
+										if(!timeorcost)
+											return costpromote;
+										else
+											return timepromote;
+									}
+								}else{
+									for(int t=0; t<types; t++)
+										for(int s=0; s<VM_queue_state[t].size(); s++)	{
+											deepcopy(VM_queue[t][s],VM_queue_state[t][s]);
+										}
+									if(!timeorcost)
+										costpromote -= costmove;
+								}
+							}else if(!estimate){
+								if(costpromote > 1e-12){
+									double cost1=0;
+									for(int ttype=0; ttype<types; ttype++)
+										for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
+											cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+									double time1 = 0;
+									for(int ttype=0; ttype<jobs.size(); ttype++){
+										pair<vertex_iter, vertex_iter> vp;
+										vp = vertices(jobs[ttype]->g);
+										time1 += jobs[ttype]->g[*(vp.second-1)].end_time;
+									}
+									time1 /= jobs.size();
+									//first do the promotion
+									promote_operation(jobs,VM_queue[i][iter],j);
+									//then do merge
+									int numoftasks = VM_queue[j][k]->assigned_tasks[0].size();//how many tasks are merged to vm[i][iiter]
+									move_operation2(jobs,VM_queue[j][k],VM_queue[i][iter],out);
+									bool update = updateVMqueue(VM_queue);
+									double cost2=0;
+									for(int ttype=0; ttype<types; ttype++)
+										for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
+											cost2 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+									double time2 = 0;
+									for(int ttype=0; ttype<jobs.size(); ttype++){
+										pair<vertex_iter, vertex_iter> vp;
+										vp = vertices(jobs[ttype]->g);
+										time2 += jobs[ttype]->g[*(vp.second-1)].end_time;
+									}
+									time2 /= jobs.size();
+									bool failcondition = false;
+									if(!timeorcost) failcondition=cost2>=cost1;
+									else {
+										if(time2>time1) failcondition = true;
+										else if(time2==time1 && cost2>=cost1)
+											failcondition = true;
+									}
+									if(failcondition){ //new cost no less than before
+										//promote only changes values, move_operation changes vector size
+										vector<taskVertex*> tasks;
+										for(int taskiter=0; taskiter<numoftasks; taskiter++){
+											taskVertex* task = VM_queue[i][iter]->assigned_tasks[out].back();
+											VM_queue[i][iter]->assigned_tasks[out].pop_back();
+											tasks.push_back(task);										
+										}
+										VM_queue[j][k]->assigned_tasks.push_back(tasks);
+										if(numoftasks==0)
+											printf("");
+										for(int t=0; t<types; t++)
+											for(int s=0; s<VM_queue_state[t].size(); s++)
+												//*VM_queue[t][s] = *VM_queue_state[t][s];
+												deepcopy(VM_queue[t][s], VM_queue_state[t][s]);
+										continue;//break to the next out queue
+									}
+									if(checkcost){
+										vector<taskVertex*> tasks;
+										for(int taskiter=0; taskiter<numoftasks; taskiter++){
+											taskVertex* task = VM_queue[i][iter]->assigned_tasks[out].back();
+											VM_queue[i][iter]->assigned_tasks[out].pop_back();
+											tasks.push_back(task);										
+										}
+										VM_queue[j][k]->assigned_tasks.push_back(tasks);
+										for(int t=0; t<types; t++)
+											for(int s=0; s<VM_queue_backup[t].size(); s++)
+												//*VM_queue[t][s] = *VM_queue_state[t][s];
+												deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);
+										deepdelete(VM_queue_backup);
+										deepdelete(VM_queue_state);
+										if(!timeorcost)
+											return cost1-cost2;
+										else
+											return time1-time2;
+									}
+									VM_queue[j].push_back(VM_queue[i][iter]);
+									VM_queue[i].erase(VM_queue[i].begin()+iter);
+									//delete VM_queue[j][k];
+									//VM_queue[j][k] = NULL;
+									VM_queue[j].erase(VM_queue[j].begin()+k);
+
+									/*double finalcost = 0;
+									for(int iiter=0; iiter<types; iiter++)
+										for(int jiter=0; jiter<VM_queue[iiter].size(); jiter++)
+											finalcost += priceOnDemand[VM_queue[iiter][jiter]->type]*VM_queue[iiter][jiter]->life_time/60.0;
+									if(finalcost>initialcost){									
+										for(int t=0; t<types; t++){
+											for(int s=0; s<VM_queue[t].size(); s++){
+												delete VM_queue[t][s];
+												VM_queue[t][s] = NULL;
+											}
+											VM_queue[t].clear();
+											vector<VM*> vms;
+											for(int s=0; s<VM_queue_state[t].size(); s++)	{
+												VM* vm = new VM();
+												deepcopy(vm,VM_queue_state[t][s]);
+												vms.push_back(vm);
+											}
+											VM_queue[t] =vms;
+										}
+									}
+									else{*/
+										deepdelete(VM_queue_backup);
+										deepdelete(VM_queue_state);
+										printf("promote operation and move operation 2\n");
+										if(!timeorcost)
+											return cost1-cost2;
+										else
+											return time1-time2;
+									//}
+								}else{ //
+									for(int t=0; t<types; t++)
+										for(int s=0; s<VM_queue_state[t].size(); s++)	{
+											deepcopy(VM_queue[t][s],VM_queue_state[t][s]);
+										}
+									costpromote -= costmove;
+								}
+							}														
 						}//the out-th VM queue
 					}
 				}//the k-th type j task
