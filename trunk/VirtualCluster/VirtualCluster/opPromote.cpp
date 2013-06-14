@@ -7,7 +7,7 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost, bool 
 	bool dopromote = false;
 	double costpromote = 0;
 	double timepromote = 0;
-
+	bool testsingle = true; //test the effectiveness of single operation
 	//save context for site recovery to the very beginning
 	vector<vector<VM*> > VM_queue_backup;
 	/*for(int i=0; i<types; i++){
@@ -209,10 +209,10 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost, bool 
 								if(timeorcost) condition1 = timepromote>1e-12;
 								else if(!timeorcost) condition1 = costpromote > 1e-12;
 								if(condition1){
-									double cost1=0;
-									for(int ttype=0; ttype<types; ttype++)
-										for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
-											cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+									//double cost1=0;
+									//for(int ttype=0; ttype<types; ttype++)
+									//	for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
+									//		cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
 									double time1 = 0;
 									for(int ttype=0; ttype<jobs.size(); ttype++){
 										pair<vertex_iter, vertex_iter> vp;
@@ -237,9 +237,12 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost, bool 
 										time2 += jobs[ttype]->g[*(vp.second-1)].end_time;
 									}
 									time2 /= jobs.size();
-									bool failcondition = false;									
-									if(time2>time1) failcondition=true;
-									else if(time2==time1 && cost2>=cost1) failcondition=true;
+									bool failcondition = false;		
+									if(!timeorcost) failcondition=(cost2>=initialcost);
+									else {
+										if(time2>time1) failcondition=true;
+										else if(time2==time1 && cost2>=initialcost) failcondition=true;
+									}
 									
 									if(failcondition){ //new cost no less than before
 										//promote only changes values, move_operation changes vector size
@@ -277,10 +280,10 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost, bool 
 								}
 							}else if(!estimate){
 								if(costpromote > 1e-12){
-									double cost1=0;
-									for(int ttype=0; ttype<types; ttype++)
-										for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
-											cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+									//double cost1=0;
+									//for(int ttype=0; ttype<types; ttype++)
+									//	for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
+									//		cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
 									double time1 = 0;
 									for(int ttype=0; ttype<jobs.size(); ttype++){
 										pair<vertex_iter, vertex_iter> vp;
@@ -306,10 +309,10 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost, bool 
 									}
 									time2 /= jobs.size();
 									bool failcondition = false;
-									if(!timeorcost) failcondition=cost2>=cost1;
+									if(!timeorcost) failcondition=cost2>=initialcost;
 									else {
 										if(time2>time1) failcondition = true;
-										else if(time2==time1 && cost2>=cost1)
+										else if(time2==time1 && cost2>=initialcost)
 											failcondition = true;
 									}
 									if(failcondition){ //new cost no less than before
@@ -344,7 +347,7 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost, bool 
 										deepdelete(VM_queue_backup);
 										deepdelete(VM_queue_state);
 										if(!timeorcost)
-											return cost1-cost2;
+											return initialcost-cost2;
 										else
 											return time1-time2;
 									}
@@ -379,7 +382,7 @@ double opPromote(vector<VM*>* VM_queue, vector<Job*> jobs, bool checkcost, bool 
 										deepdelete(VM_queue_state);
 										printf("promote operation and move operation 2\n");
 										if(!timeorcost)
-											return cost1-cost2;
+											return initialcost-cost2;
 										else
 											return time1-time2;
 									//}

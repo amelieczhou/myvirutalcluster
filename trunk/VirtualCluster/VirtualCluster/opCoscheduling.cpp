@@ -2,12 +2,13 @@
 #include "ConsolidateOperators.h"
 
 double opCoschedule(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost, bool estimate,bool timeorcost)
-{/*
+{
 	bool docoschedule = false;
 	bool domerge = false;
 	double costmerge = 0;
 	double costcoschedule = 0;
-	//co-scheduling
+	double degradation = 0.25;
+/*	//co-scheduling
 	//double degradation = 0.2;
 	for(int i=0; i<VMs.size(); i++) {
 		if(VMs[i]->capacity > 0){ //have space for co-scheduling
@@ -80,5 +81,35 @@ double opCoschedule(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost, boo
 		if(docoschedule) break;
 	}
 	*/
+	for(int i=0; i<types; i++){
+		for(int j=0; j<VM_queue[i].size(); j++){
+			for(int k=j+1; k<VM_queue[i].size(); k++){
+				if(VM_queue[i][j]->assigned_tasks.size()==1 && VM_queue[i][k]->assigned_tasks.size()==1){
+					if(VM_queue[i][j]->assigned_tasks[0].size()==1 && VM_queue[i][k]->assigned_tasks[0].size()==1){
+						if(VM_queue[i][j]->start_time == VM_queue[i][k]->start_time && VM_queue[i][j]->end_time == VM_queue[i][j]->end_time){
+							//can co-schedule
+							for(int tj=0; tj<VM_queue[i][j]->assigned_tasks[0].size();tj++){
+								//VM_queue[i][j]->assigned_tasks[0][tj]->estTime[]
+								docoschedule = true;
+								taskVertex* task= VM_queue[i][k]->assigned_tasks[0][0];
+								VM_queue[i][k]->assigned_tasks[0].pop_back();
+								vector<taskVertex*> tasks;
+								tasks.push_back(task);
+								VM_queue[i][j]->assigned_tasks.push_back(tasks);
+								VM_queue[i][j]->capacity -= 1;
+								VM_queue[i].erase(VM_queue[i].begin()+k);
+								printf("co-scheduling operation\n");
+								costcoschedule = priceOnDemand[i];
+								return costcoschedule;
+							}
+						}
+					}
+				}
+			
+			}
+
+		}
+	
+	}
 	return 0;
 }

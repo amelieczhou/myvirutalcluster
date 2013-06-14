@@ -154,7 +154,7 @@ void GanttConsolidation::Initialization(Job* testJob, int policy, bool timeorcos
 				int task1 = (double)rand() / (RAND_MAX+1) * size_tasks;
 				int task2 = (double)rand() / (RAND_MAX+1) * size_tasks;
 				//std::cout<<task1<<", "<<task2;
-				if(testJob->g[task1].assigned_type<types-1 && testJob->g[task2].assigned_type<types-1) {
+				if(testJob->g[task1].assigned_type<types-1 && testJob->g[task2].assigned_type<types-1&&task1!=task2) {
 					testJob->g[task1].assigned_type += 1;
 					testJob->g[task2].assigned_type += 1;
 					double t_old = testJob->g[vend].end_time;
@@ -189,6 +189,27 @@ void GanttConsolidation::Initialization(Job* testJob, int policy, bool timeorcos
 				costopt=0;
 				for(; vp.first != vp.second; ++vp.first)
 					costopt += ceil(testJob->g[*vp.first].estTime[testJob->g[*vp.first].assigned_type]/60)*priceOnDemand[testJob->g[*vp.first].assigned_type];
+			}
+		}else{
+			//make sure of deadline
+			while(testJob->g[vend].end_time> testJob->deadline) { //most gain to satisfy deadline			
+				//change two tasks at the same time
+				vp = vertices(testJob->g);
+				int size_tasks = *vp.second - *vp.first - 1;
+				int task1 = (double)rand() / (RAND_MAX+1) * size_tasks;
+				int task2 = (double)rand() / (RAND_MAX+1) * size_tasks;
+				//std::cout<<task1<<", "<<task2;
+				if(testJob->g[task1].assigned_type<types-1 && testJob->g[task2].assigned_type<types-1&&task1!=task2) {
+					testJob->g[task1].assigned_type += 1;
+					testJob->g[task2].assigned_type += 1;
+					double t_old = testJob->g[vend].end_time;
+					BFS_update(testJob);
+					double t_new = testJob->g[vend].end_time;
+					if(!(t_new < t_old)) {
+						testJob->g[task1].assigned_type -= 1;
+						testJob->g[task2].assigned_type -= 1;
+					}
+				}
 			}
 		}
 	}
@@ -280,7 +301,7 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer, bool rule,
 			originalcost += priceOnDemand[i]*VM_queue[i][j]->life_time/60.0;
 		}
 	}	
-	
+	if(true){
 	do{	
 		//sort according to the start time of each VM
 		//for(int i=0; i<types; i++) 
@@ -292,6 +313,7 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer, bool rule,
 		double savedemote = 0;
 		double savepromote = 0;
 		double savemerge = 0;
+		double savecoschedule = 0;
 		double mergecount = 0;
 		double demotecount = 0;
 		double movecount = 0;
@@ -324,27 +346,43 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer, bool rule,
 
 		if(rule){
 			//try the 5 operations with rule				
-			savemove = opMove(VM_queue,jobs,true,estimate,timeorcost);
+			//savemove = opMove(VM_queue,jobs,true,estimate,timeorcost);
 			savepromote = opPromote(VM_queue,jobs,true,estimate,timeorcost);
 			savedemote = opDemote(VM_queue,jobs,true,estimate,timeorcost);
-			savemerge = opMerge(VM_queue,jobs,true,estimate,timeorcost);
+			//savemerge = opMerge(VM_queue,jobs,true,estimate,timeorcost);
 			savesplit = opSplit(VM_queue, jobs,true,estimate,timeorcost);
-			
+			//savecoschedule = opCoschedule(VM_queue, jobs,true,estimate,timeorcost);
 
-			if(savemove>=savepromote && savemove>=savedemote && savemove>=savemerge && savemove>=savesplit){
-				savethisround = opMove(VM_queue,jobs,false,estimate,timeorcost);
+			if(savemove>=savepromote && savemove>=savedemote && savemove>=savemerge && savemove>=savesplit && savemove>= savecoschedule){
+				//savethisround = opMove(VM_queue,jobs,false,estimate,timeorcost);
+				printf("real save is: %4f\n",savethisround);
+				printf("estimated save is: %4f\n", savemove);
 			}
-			else if(savepromote>=savemove && savepromote>=savedemote && savepromote>=savemerge && savepromote>=savesplit){
-				savethisround = opPromote(VM_queue,jobs,false,estimate,timeorcost);
+			else if(savepromote>=savemove && savepromote>=savedemote && savepromote>=savemerge && savepromote>=savesplit && savepromote>= savecoschedule){
+				//savethisround = opPromote(VM_queue,jobs,false,estimate,timeorcost);
+				printf("real save is: %4f\n",savethisround);
+				printf("estimated save is: %4f\n", savepromote);
+
 			}
-			else if(savedemote>=savemove && savedemote>=savepromote && savedemote>=savemerge && savedemote>=savesplit){
+			else if(savedemote>=savemove && savedemote>=savepromote && savedemote>=savemerge && savedemote>=savesplit && savedemote>= savecoschedule){
 				savethisround = opDemote(VM_queue,jobs,false,estimate,timeorcost);				
+				printf("real save is: %4f\n",savethisround);
+				printf("estimated save is: %4f\n", savedemote);
+
 			}
-			else if(savemerge>=savemove && savemerge>=savepromote && savemerge>=savedemote && savemerge>=savesplit){
+			else if(savemerge>=savemove && savemerge>=savepromote && savemerge>=savedemote && savemerge>=savesplit && savemerge>= savecoschedule){
 				savethisround = opMerge(VM_queue,jobs,false,estimate,timeorcost);				
+				printf("real save is: %4f\n",savethisround);
+				printf("estimated save is: %4f\n", savemerge);
+
 			}
-			else if(savesplit>=savemove && savesplit>=savepromote && savesplit>=savedemote && savesplit>=savemerge){
-				savethisround = opSplit(VM_queue,jobs,false,estimate,timeorcost);				
+			else if(savesplit>=savemove && savesplit>=savepromote && savesplit>=savedemote && savesplit>=savemerge && savesplit>= savecoschedule){
+				savethisround = opSplit(VM_queue,jobs,false,estimate,timeorcost);	
+				printf("real save is: %4f\n",savethisround);
+				printf("estimated save is: %4f\n", savesplit);
+
+			}else if(savecoschedule>=savemove && savecoschedule>=savepromote && savecoschedule>=savedemote && savecoschedule>= savemerge &&savecoschedule>=savesplit){
+				savethisround = opCoschedule(VM_queue,jobs,false,estimate,timeorcost);
 			}
 		} 
 		else{
@@ -377,6 +415,7 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer, bool rule,
 			printf("cost < 0, stop here\n");
 		originalcost = iteratecost;
 	}while(count<1);
+	}
 	for(int i=0; i<types; i++)
 		for(int j=0; j<VM_queue[i].size(); j++)
 			cost += priceOnDemand[i]*VM_queue[i][j]->life_time/60.0;
