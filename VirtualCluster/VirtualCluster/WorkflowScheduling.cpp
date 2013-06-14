@@ -13,7 +13,7 @@ bool sharing;
 bool on_off = true;
 double lamda;
 double QoS; //for provisioning
-double Times[4][types] = {{200,105,58,34},{140,75,43,27},{80,45,28,19},{40,25,18,14}};
+double Times[4][types] = {{200,105,58,34},{140,75,43,27},{80,45,28,19},{40,25,18,14}};//{{202,106,58,34},{141,76,43,27},{81,45,28,19},{40,25,18,14}};//real cloud
 double budget;
 
 int main(int argc, char** argv)

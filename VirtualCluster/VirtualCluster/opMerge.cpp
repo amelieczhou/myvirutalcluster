@@ -87,10 +87,10 @@ double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost, bool e
 							continue;
 						}else if(!checkcost && estimate ){//since do not change time, when cost lower, do it
 							if(costmerge>1e-12){
-								double cost1=0;
-								for(int ttype=0; ttype<types; ttype++)
-									for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
-										cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+								//double cost1=0;
+								//for(int ttype=0; ttype<types; ttype++)
+								//	for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
+								//		cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
 								//do merge
 								int numoftasks = VM_queue[i][j]->assigned_tasks[0].size();//how many tasks are merged to vm[i][iiter]
 								move_operation2(jobs,VM_queue[i][j],VM_queue[i][k],out);
@@ -110,7 +110,7 @@ double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost, bool e
 								for(int ttype=0; ttype<types; ttype++)
 									for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
 										cost2 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
-								if(cost2>cost1 || !update){ 
+								if(cost2>initialcost || !update){ 
 									//new cost is larger, so go back to backup
 									vector<taskVertex*> tasks;
 									for(int taskiter=0; taskiter<numoftasks; taskiter++){
@@ -141,10 +141,10 @@ double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost, bool e
 							}
 						}else if(!estimate){//&&!timeorcost){
 							if(costmerge > 1e-12){
-								double cost1=0;
-								for(int ttype=0; ttype<types; ttype++)
-									for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
-										cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+								//double cost1=0;
+								//for(int ttype=0; ttype<types; ttype++)
+								//	for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
+								//		cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
 								double time1 = 0;
 								for(int ttype=0; ttype<jobs.size(); ttype++){
 									pair<vertex_iter, vertex_iter> vp;
@@ -168,10 +168,10 @@ double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost, bool e
 								}
 								time2 /= jobs.size();
 								bool failcondition = false;
-								if(!timeorcost) failcondition=cost2>=cost1;
+								if(!timeorcost) failcondition=(cost2>=initialcost);
 								else {
 									if(time2>time1) failcondition = true;
-									else if(time2==time1 && cost2>=cost1)
+									else if(time2==time1 && cost2>=initialcost)
 										failcondition = true;
 								}
 								if(failcondition){ 
@@ -205,7 +205,7 @@ double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost, bool e
 												deepcopy(VM_queue[t][s], VM_queue_backup[t][s]);
 										deepdelete(VM_queue_backup);
 										if(!timeorcost)
-											return cost1-cost2;
+											return initialcost-cost2;
 										else
 											return time1-time2;
 									}
@@ -217,7 +217,7 @@ double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost, bool e
 									deepdelete(VM_queue_backup);
 									printf("merge operation\n");
 									if(!timeorcost)
-										return cost1-cost2;
+										return initialcost-cost2;
 									else
 										return time1-time2;
 								}

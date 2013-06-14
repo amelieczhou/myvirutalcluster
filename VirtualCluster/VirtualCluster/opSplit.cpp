@@ -123,11 +123,11 @@ double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost, bool est
 						}
 						if(splittask == -1 && splitindex == -1){
 							//do not need to split a task, can put vm j entirely on vm k1
-							double cost1=0;
+							//double cost1=0;
 							int numoftasks =  VM_queue[i][j]->assigned_tasks[0].size();
-							for(int ttype=0; ttype<types; ttype++)
-								for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
-									cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+							//for(int ttype=0; ttype<types; ttype++)
+							//	for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
+							//		cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
 							
 							double t1 = VM_queue[i][j]->end_time - VM_queue[i][j]->start_time;
 							double t2 = VM_queue[i][k1]->end_time - VM_queue[i][k1]->start_time;
@@ -160,7 +160,7 @@ double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost, bool est
 									for(int ttype=0; ttype<types; ttype++)
 										for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
 											cost2 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
-									if(cost2 >= cost1){								
+									if(cost2 >= initialcost){								
 										vector<taskVertex*> tasks;
 										for(int t=0; t<numoftasks; t++)	{
 											taskVertex* task = VM_queue[i][k1]->assigned_tasks[0].back();
@@ -196,7 +196,7 @@ double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost, bool est
 											}
 											deepdelete(VM_queue_backup);
 											deepdelete(VM_queue_state);
-											return cost1-cost2;
+											return initialcost-cost2;
 										}
 										VM_queue[i].erase(VM_queue[i].begin()+j);
 										deepdelete(VM_queue_backup);
@@ -204,7 +204,7 @@ double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost, bool est
 										if(moveafter1 == 0)
 											printf("split move operation 2\n");
 										else printf("split move operation 1\n");
-										return cost1-cost2;
+										return initialcost-cost2;
 									}
 								//}
 							}					
@@ -267,10 +267,10 @@ double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost, bool est
 									}else if(!(checkcost && estimate)){
 										//}else if(!estimate){
 										updateVMqueue(VM_queue);
-										double cost1=0;
+										/*double cost1=0;
 										for(int ttype=0; ttype<types; ttype++)
 											for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
-												cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
+												cost1 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;*/
 										int numoftasks = VM_queue[i][j]->assigned_tasks[0].size();
 										for(int sn=0; sn<first_names.size(); sn++){
 											taskVertex* task = VM_queue[i][j]->assigned_tasks[0][first_names[sn]];
@@ -287,7 +287,7 @@ double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost, bool est
 										for(int ttype=0; ttype<types; ttype++)
 											for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
 												cost2 += priceOnDemand[VM_queue[ttype][tsize]->type]*VM_queue[ttype][tsize]->life_time /60.0;
-										if(cost2>=cost1){
+										if(cost2>=initialcost){
 											vector<taskVertex*> tasks,tasks1;
 											vector<taskVertex*> firsttasks, secondtasks;
 											for(int sn=0; sn<first_names.size(); sn++){
@@ -393,13 +393,13 @@ double opSplit(vector<VM*>* VM_queue, vector<Job*> jobs,bool checkcost, bool est
 											
 												deepdelete(VM_queue_backup);
 												deepdelete(VM_queue_state);
-												return cost1-cost2;
+												return initialcost-cost2;
 											}
 											VM_queue[i].erase(VM_queue[i].begin()+j);
 											deepdelete(VM_queue_backup);
 											deepdelete(VM_queue_state);
 											printf("split without split a task\n");
-											return cost1-cost2;
+											return initialcost-cost2;
 										}
 									}								
 								}

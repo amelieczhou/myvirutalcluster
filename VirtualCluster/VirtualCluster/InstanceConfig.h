@@ -6,8 +6,8 @@ using namespace boost;
 using namespace std;
 
 const int types = 4; //VM types
-const double priceOnDemand[] = {0.095, 0.19, 0.38, 0.76};
-const double OnDemandLag = 5;//0;
+const double priceOnDemand[] = {0.095, 0.19, 0.38, 0.76};//{0.022, 0.06, 0.12, 0.24};//
+const double OnDemandLag = 0;//0;
 const double inter_time = 5; //time interval between 2 vms less than inter_time can be merged
 const double idle_interval = 30; //a vm has been idle for idle_interval has to be turned off
 const double degradation = 0.2;
