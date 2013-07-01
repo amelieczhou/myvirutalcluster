@@ -21,6 +21,8 @@ int main(int argc, char** argv)
 	int depth = atoi(argv[3]);
 	int width = atoi(argv[4]);
 	deadline = atof(argv[5]);
+	if(strcmp(argv[17],"istime")==0)
+		deadline = 250;
 	double p_rate = atof(argv[15]);
 	if(strcmp(argv[6],"dynamic")==0)
 		DynamicSchedule = true;
@@ -336,7 +338,7 @@ int main(int argc, char** argv)
 	}
 	else if(strcmp(argv[2],"Ligo+Montage")==0){
 		testJob.type = Ligo;
-		testJob.budget = 9.6;
+		testJob.budget = 19.2;
 		int rnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//42
 		for(int i=0; i<40+2; i++){
 			taskVertex tk;
@@ -379,7 +381,7 @@ int main(int argc, char** argv)
 			add_edge(20,i,testJob.g);
 
 		testJob1.type = Montage;
-		testJob1.budget = 5.5;
+		testJob1.budget = 11;
 		int rrnds[] = {0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1};//22
 		for(int i=0; i<20+2; i++){
 			taskVertex tk;

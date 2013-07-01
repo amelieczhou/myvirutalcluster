@@ -104,8 +104,9 @@ void GanttConsolidation::Initialization(Job* testJob, int policy, bool timeorcos
 				vp = vertices(testJob->g);
 				costopt=0;
 				for(; vp.first != vp.second; ++vp.first)
-					costopt += ceil(testJob->g[*vp.first].estTime[testJob->g[*vp.first].assigned_type]/60)*priceOnDemand[testJob->g[*vp.first].assigned_type];
+					costopt += ceil(testJob->g[*vp.first].estTime[testJob->g[*vp.first].assigned_type]/60.0)*priceOnDemand[testJob->g[*vp.first].assigned_type];
 			}
+			BFS_update(testJob);
 		}
 	}
 	else if(policy == 2){//worst fit
@@ -190,6 +191,7 @@ void GanttConsolidation::Initialization(Job* testJob, int policy, bool timeorcos
 				for(; vp.first != vp.second; ++vp.first)
 					costopt += ceil(testJob->g[*vp.first].estTime[testJob->g[*vp.first].assigned_type]/60)*priceOnDemand[testJob->g[*vp.first].assigned_type];
 			}
+			BFS_update(testJob);
 		}else{
 			//make sure of deadline
 			while(testJob->g[vend].end_time> testJob->deadline) { //most gain to satisfy deadline			
@@ -344,22 +346,22 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer, bool rule,
 		int num_vms_saved = num_vms - num_vms_move;*/
 		//printf("The overall number of VMs saved by move operation is %d\n",num_vms_saved);
 
-		if(rule){
+		if(false){
 			//try the 5 operations with rule				
-			//savemove = opMove(VM_queue,jobs,true,estimate,timeorcost);
+			savemove = opMove(VM_queue,jobs,true,estimate,timeorcost);
 			savepromote = opPromote(VM_queue,jobs,true,estimate,timeorcost);
 			savedemote = opDemote(VM_queue,jobs,true,estimate,timeorcost);
-			//savemerge = opMerge(VM_queue,jobs,true,estimate,timeorcost);
+			savemerge = opMerge(VM_queue,jobs,true,estimate,timeorcost);
 			savesplit = opSplit(VM_queue, jobs,true,estimate,timeorcost);
 			//savecoschedule = opCoschedule(VM_queue, jobs,true,estimate,timeorcost);
 
 			if(savemove>=savepromote && savemove>=savedemote && savemove>=savemerge && savemove>=savesplit && savemove>= savecoschedule){
-				//savethisround = opMove(VM_queue,jobs,false,estimate,timeorcost);
+				savethisround = opMove(VM_queue,jobs,false,estimate,timeorcost);
 				printf("real save is: %4f\n",savethisround);
 				printf("estimated save is: %4f\n", savemove);
 			}
 			else if(savepromote>=savemove && savepromote>=savedemote && savepromote>=savemerge && savepromote>=savesplit && savepromote>= savecoschedule){
-				//savethisround = opPromote(VM_queue,jobs,false,estimate,timeorcost);
+				savethisround = opPromote(VM_queue,jobs,false,estimate,timeorcost);
 				printf("real save is: %4f\n",savethisround);
 				printf("estimated save is: %4f\n", savepromote);
 
@@ -382,22 +384,64 @@ double GanttConsolidation::Planner(std::vector<Job*> jobs, int timer, bool rule,
 				printf("estimated save is: %4f\n", savesplit);
 
 			}else if(savecoschedule>=savemove && savecoschedule>=savepromote && savecoschedule>=savedemote && savecoschedule>= savemerge &&savecoschedule>=savesplit){
-				savethisround = opCoschedule(VM_queue,jobs,false,estimate,timeorcost);
+				//savethisround = opCoschedule(VM_queue,jobs,false,estimate,timeorcost);
 			}
-		} 
+		}
+		if(rule){
+			savedemote = opDemote(VM_queue,jobs,true,estimate,timeorcost);
+            savemerge = opMerge(VM_queue,jobs,true,estimate,timeorcost);
+
+            if(savedemote>=savemerge && savedemote > 0)
+               savethisround = opDemote(VM_queue,jobs,false,estimate,timeorcost);
+            else if(savemerge > 0)
+               savethisround = opMerge(VM_queue,jobs,false,estimate,timeorcost);
+
+            savesplit = opSplit(VM_queue, jobs,true,estimate,timeorcost);
+         //   savecoschedule = opCoschedule(VM_queue, jobs,true,estimate,timeorcost);
+            savemove =  opMove(VM_queue,jobs,true,estimate,timeorcost);
+            savepromote = opPromote(VM_queue,jobs,true,estimate,timeorcost);
+
+            if(savemove>=savepromote && savemove>=savesplit && savemove>= savecoschedule && savemove>0){
+                    savethisround += opMove(VM_queue,jobs,false,estimate,timeorcost);
+            }
+            else if(savepromote>=savemove && savepromote>=savesplit && savepromote>= savecoschedule && savepromote>0){
+                    savethisround += opPromote(VM_queue,jobs,false,estimate,timeorcost);
+            }
+            else if(savesplit>=savemove && savesplit>=savepromote && savesplit>= savecoschedule && savesplit>0){
+                    savethisround += opSplit(VM_queue,jobs,false,estimate,timeorcost);
+            }else if(savecoschedule>=savemove && savecoschedule>=savepromote && savecoschedule>=savesplit &&savecoschedule>0){
+                  //  savethisround += opCoschedule(VM_queue,jobs,false,estimate,timeorcost);
+            }
+			
+		}
 		else{
-			//do the five operators randomly		
-			int select = (double)rand() / (RAND_MAX+1) * 5;
-			if(select==0)
-				savethisround = opMove(VM_queue,jobs,false,estimate,timeorcost);
-			else if(select==1)
-				savethisround = opPromote(VM_queue,jobs,false,estimate,timeorcost);
-			else if(select ==2)
-				savethisround = opDemote(VM_queue,jobs,false,estimate,timeorcost);
-			else if(select == 3)
+			////do the five operators randomly		
+			//int select = (double)rand() / (RAND_MAX+1) * 5;
+			//if(select==0)
+			//	savethisround = opMove(VM_queue,jobs,false,estimate,timeorcost);
+			//else if(select==1)
+			//	savethisround = opPromote(VM_queue,jobs,false,estimate,timeorcost);
+			//else if(select ==2)
+			//	savethisround = opDemote(VM_queue,jobs,false,estimate,timeorcost);
+			//else if(select == 3)
+			//	savethisround = opMerge(VM_queue,jobs,false,estimate,timeorcost);
+			//else if(select == 4)
+			//	savethisround = opSplit(VM_queue,jobs,false,estimate,timeorcost);
+			int select1 = (double)rand() /(RAND_MAX+1) * 2;
+			if(select1 == 0)
 				savethisround = opMerge(VM_queue,jobs,false,estimate,timeorcost);
-			else if(select == 4)
-				savethisround = opSplit(VM_queue,jobs,false,estimate,timeorcost);
+			if(select1 == 1)
+				savethisround = opDemote(VM_queue,jobs,false,estimate,timeorcost);
+
+			int select2 = (double)rand() / (RAND_MAX+1) * 4;
+			if(select2==0)
+				savethisround += opMove(VM_queue,jobs,false,estimate,timeorcost);
+			else if(select2==1)
+				savethisround += opPromote(VM_queue,jobs,false,estimate,timeorcost);
+			else if(select2 ==2)
+				savethisround += opSplit(VM_queue,jobs,false,estimate,timeorcost);
+			else if(select2 == 3)
+				savethisround += opCoschedule(VM_queue,jobs,false,estimate,timeorcost);
 		}
 		//savethisround = savemove+savedemote+savepromote+savemerge+savemove;
 		if(savethisround <= 0) count++;
@@ -537,6 +581,7 @@ void GanttConsolidation::Simulate(Job testJob, int input, int period, bool rule,
 			/*unsigned seed = timer;
 			srand( (unsigned)time( NULL ) );*/
 			double cost = Planner(jobs, timer, rule, estimate,timeorcost);
+			//after planning, requesting VMs
 			totalcost += cost;
 		}
 		timer ++;
