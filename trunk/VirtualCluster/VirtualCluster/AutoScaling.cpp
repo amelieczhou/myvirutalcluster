@@ -89,7 +89,7 @@ void AutoScaling::Initialization(Job* testJob, Job* testJob1){
 void AutoScaling::Simulate(Job testJob, bool timeorcost) {
 	//if timeorcost==true, optimize time
 	if(timeorcost){
-		deadline = 500;
+		deadline = 250;
 	}
 	
 timeoptimize:
@@ -374,7 +374,7 @@ timeoptimize:
 }
 void AutoScaling::Simulate(Job testJob, Job testJob1, bool timeorcost) {
 	if(timeorcost)
-		deadline = 500.0;
+		deadline = 350.0;
 
 timeoptimize:
 	Initialization(&testJob,&testJob1);
