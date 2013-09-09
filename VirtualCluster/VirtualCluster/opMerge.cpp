@@ -86,7 +86,7 @@ double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost, bool e
 							}
 							continue;
 						}else if(!checkcost && estimate ){//since do not change time, when cost lower, do it
-							if(costmerge>1e-12){
+							if(costmerge>=0){//>1e-12){
 								//double cost1=0;
 								//for(int ttype=0; ttype<types; ttype++)
 								//	for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
@@ -140,7 +140,7 @@ double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost, bool e
 								}
 							}
 						}else if(!estimate){//&&!timeorcost){
-							if(costmerge > 1e-12){
+							if(costmerge>=0){// > 1e-12){
 								//double cost1=0;
 								//for(int ttype=0; ttype<types; ttype++)
 								//	for(int tsize=0; tsize<VM_queue[ttype].size(); tsize++)
@@ -168,10 +168,10 @@ double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost, bool e
 								}
 								time2 /= jobs.size();
 								bool failcondition = false;
-								if(!timeorcost) failcondition=(cost2>=initialcost);
+								if(!timeorcost) failcondition=(cost2>initialcost);
 								else {
 									if(time2>time1) failcondition = true;
-									else if(time2==time1 && cost2>=initialcost)
+									else if(time2==time1 && cost2>initialcost)
 										failcondition = true;
 								}
 								if(failcondition){ 
@@ -234,6 +234,7 @@ double opMerge(vector<VM*>*  VM_queue, vector<Job*> jobs, bool checkcost, bool e
 			}//j-th vm
 		}//k-th vm
 	}
+	//if come to this point, it means no merge has been done for 2 tasks
 	for(int t=0; t<types; t++){
 		for(int s=0; s<VM_queue_backup[t].size(); s++)	{
 			deepcopy(VM_queue[t][s],VM_queue_backup[t][s]);

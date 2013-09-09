@@ -478,10 +478,11 @@ int main(int argc, char** argv)
 			alg2.Simulate(testJob,testJob1,time);
 		}else{
 			AutoScaling alg2;
-			alg2.Simulate(testJob,time);
+			Job nulljob(pipeline,0,0);
+			alg2.Simulate(testJob,nulljob,time);
 		}
 	}
-	else if(strcmp(argv[1], "consolidation") == 0){
+	else if(strcmp(argv[1], "consolidation") == 0 || strcmp(argv[1],"baseline")==0){
 		GanttConsolidation alg3;			
 		int interval = atoi(argv[13]);
 		bool rule;
@@ -499,20 +500,25 @@ int main(int argc, char** argv)
 			estimate = false;
 		else return 1;
 		bool time;
+		bool baseline;
 		if(strcmp(argv[17],"istime")==0)
 			time = true;
 		else if(strcmp(argv[17],"cost")==0)
 			time = false;
+		if(strcmp(argv[1],"baseline")==0)
+			baseline = true;
+		else baseline = false;
 		if(strcmp(argv[2],"Ligo+Montage")==0){
 			//simulation
-			if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,testJob1,1,interval,rule,estimate,time);
-			else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,testJob1,2,interval,rule,estimate,time);
-			else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,testJob1,3,interval,rule,estimate,time);
+			if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,testJob1,1,interval,rule,estimate,time,baseline);
+			else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,testJob1,2,interval,rule,estimate,time,baseline);
+			else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,testJob1,3,interval,rule,estimate,time,baseline);
 		}else{
 			//simulation
-			if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,1,interval,rule,estimate,time);
-			else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,2,interval,rule,estimate,time);
-			else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,3,interval,rule,estimate,time);		
+			Job nulljob(pipeline,0,0);
+			if(strcmp(argv[12],"bestfit") == 0) alg3.Simulate(testJob,nulljob,1,interval,rule,estimate,time,baseline);
+			else if(strcmp(argv[12],"worstfit") == 0) alg3.Simulate(testJob,nulljob,2,interval,rule,estimate,time,baseline);
+			else if(strcmp(argv[12],"mostefficient") == 0) alg3.Simulate(testJob,nulljob,3,interval,rule,estimate,time,baseline);		
 		}
 	}
 

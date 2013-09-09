@@ -372,6 +372,7 @@ bool updateVMqueue(vector<VM*>* VM_queue)
 							newendtime = VM_queue[s][t]->assigned_tasks[out][in]->end_time;
 					}
 				}
+				VM_queue[s][t]->type = VM_queue[s][t]->assigned_tasks[0][0]->assigned_type;
 				VM_queue[s][t]->start_time = newstartime;
 				VM_queue[s][t]->end_time = newendtime;
 				VM_queue[s][t]->life_time = ceil((newendtime - newstartime)/60.0)*60.0;
